@@ -1,0 +1,1693 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.xau-next.invalid/analysis-answer/1.5.0",
+  "title": "XAU Next Analysis Answer",
+  "description": "1.5.0支持冻结超短线价差偏好及超过偏好持仓时间的依据；旧请求使用原冻结格式，旧回答保持原文。",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1.0.0",
+        "1.1.0",
+        "1.2.0",
+        "1.3.0",
+        "1.4.0",
+        "1.5.0",
+        "1.6.0",
+        "1.7.0"
+      ]
+    },
+    "request_id": {
+      "$ref": "#/$defs/Id"
+    },
+    "forecast_id": {
+      "$ref": "#/$defs/Id"
+    },
+    "base_version_id": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "market_snapshot_id": {
+      "$ref": "#/$defs/Id"
+    },
+    "market_cutoff": {
+      "$ref": "#/$defs/UtcTime"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 3000
+    },
+    "market_regime": {
+      "type": "string",
+      "enum": [
+        "trend",
+        "range",
+        "transition",
+        "uncertain"
+      ]
+    },
+    "horizons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Horizon"
+      },
+      "minItems": 1,
+      "maxItems": 6
+    },
+    "plans": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Plan"
+      },
+      "minItems": 0,
+      "maxItems": 2
+    },
+    "order_advice": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/OrderAdvice"
+      },
+      "minItems": 0,
+      "maxItems": 200
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Id"
+      },
+      "minItems": 0,
+      "maxItems": 100
+    },
+    "analysis_basis": {
+      "$ref": "#/$defs/AnalysisBasis"
+    },
+    "candidate_assessments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CandidateAssessment"
+      },
+      "minItems": 1,
+      "maxItems": 2,
+      "description": "每个请求启用模式恰好一项；outcome只评价是否形成候选，不是当前入场资格。"
+    },
+    "experience_application": {
+      "$ref": "#/$defs/ExperienceApplication"
+    },
+    "prediction_adjustments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PredictionAdjustment"
+      },
+      "minItems": 0,
+      "maxItems": 12
+    }
+  },
+  "required": [
+    "schema_version",
+    "request_id",
+    "forecast_id",
+    "base_version_id",
+    "market_snapshot_id",
+    "market_cutoff",
+    "summary",
+    "market_regime",
+    "horizons",
+    "plans",
+    "order_advice",
+    "evidence_refs"
+  ],
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    },
+    "Decimal": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+      "maxLength": 48,
+      "description": "十进制字符串；数值范围、正负及合约网格由业务验证。禁止NaN、Infinity及指数记法。"
+    },
+    "UtcTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$",
+      "description": "UTC ISO 8601，以Z结尾；不接受无时区时间。"
+    },
+    "Direction": {
+      "type": "string",
+      "enum": [
+        "long",
+        "short",
+        "neutral",
+        "uncertain"
+      ]
+    },
+    "Side": {
+      "type": "string",
+      "enum": [
+        "long",
+        "short"
+      ]
+    },
+    "Range": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "low": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "high": {
+          "$ref": "#/$defs/Decimal"
+        }
+      },
+      "required": [
+        "low",
+        "high"
+      ],
+      "description": "low <= high 由业务验证。"
+    },
+    "Rule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "immediate",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "bar_close",
+              "type": "string"
+            },
+            "timeframe": {
+              "type": "string",
+              "enum": [
+                "M1",
+                "M5",
+                "M15"
+              ]
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "gt",
+                "gte",
+                "lt",
+                "lte"
+              ]
+            },
+            "price": {
+              "$ref": "#/$defs/Decimal"
+            }
+          },
+          "required": [
+            "kind",
+            "timeframe",
+            "operator",
+            "price"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "quote_compare",
+              "type": "string"
+            },
+            "quote_side": {
+              "type": "string",
+              "enum": [
+                "bid",
+                "ask"
+              ]
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "gt",
+                "gte",
+                "lt",
+                "lte"
+              ]
+            },
+            "price": {
+              "$ref": "#/$defs/Decimal"
+            }
+          },
+          "required": [
+            "kind",
+            "quote_side",
+            "operator",
+            "price"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "manual_observation",
+              "type": "string"
+            },
+            "instruction": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1200
+            }
+          },
+          "required": [
+            "kind",
+            "instruction"
+          ]
+        }
+      ],
+      "description": "kind为判别字段。immediate仅可作activation；invalidation禁止immediate。一次规则只表达一个谓词，组合策略需升级契约。"
+    },
+    "Entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "market",
+            "limit_retest",
+            "stop_breakout"
+          ]
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Range"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "price",
+        "zone"
+      ],
+      "description": "market可没有固定价格；委托模式的精确金额依赖明确price。zone不自动取中点。"
+    },
+    "Plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan_key": {
+          "$ref": "#/$defs/Id"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "backup"
+          ]
+        },
+        "side": {
+          "$ref": "#/$defs/Side"
+        },
+        "entry": {
+          "$ref": "#/$defs/Entry",
+          "description": "limit_retest触发后等待回踩到允许区间及精确限价，不因尚未回踩直接判为错过；仍受失效、止损、目标和期限约束。"
+        },
+        "activation": {
+          "$ref": "#/$defs/Rule"
+        },
+        "invalidation": {
+          "$ref": "#/$defs/Rule",
+          "description": "等待阶段背景破坏条件，从方案实际可用起全程检查；旧版仍保持全程失效原语义。"
+        },
+        "stop_loss": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "take_profit": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "volume_lots": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entry_deadline": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "exit_deadline": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "max_holding_minutes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10080
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "valid_from": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "trading_style": {
+          "$ref": "#/$defs/TradingStyle"
+        },
+        "entry_checks": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/AutomaticRule"
+              },
+              {
+                "$ref": "#/$defs/ObservedEntryCheck"
+              }
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 4
+        },
+        "post_activation_invalidation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AutomaticRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "仅1.3.0：激活事件及其后检查的结构失效条件；null表示没有额外阶段条件。全程背景失效仍保留，同事件失效优先。"
+        },
+        "holding_time_basis": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "超过请求偏好的成交后持仓时间时，说明近端结构和时间依据；其余可null。不改变入场等待期限。"
+        },
+        "holding_exit": {
+          "$ref": "#/$defs/HoldingExit"
+        }
+      },
+      "required": [
+        "plan_key",
+        "role",
+        "side",
+        "entry",
+        "activation",
+        "invalidation",
+        "stop_loss",
+        "take_profit",
+        "volume_lots",
+        "entry_deadline",
+        "exit_deadline",
+        "max_holding_minutes",
+        "rationale",
+        "valid_from"
+      ],
+      "description": "首版每个Plan最多一次参考入场，止盈目标一个。方案建议不构成订单。"
+    },
+    "Phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "end_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "direction": {
+          "$ref": "#/$defs/Direction"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "start_at",
+        "end_at",
+        "direction",
+        "note"
+      ]
+    },
+    "TurningPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "local_high",
+            "local_low"
+          ]
+        },
+        "earliest_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "latest_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "price_range": {
+          "$ref": "#/$defs/Range"
+        }
+      },
+      "required": [
+        "kind",
+        "earliest_at",
+        "latest_at",
+        "price_range"
+      ]
+    },
+    "Horizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "horizon_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10080
+        },
+        "end_at": {
+          "$ref": "#/$defs/UtcTime"
+        },
+        "direction": {
+          "$ref": "#/$defs/Direction",
+          "description": "整段剩余窗口端点净变化方向：neutral指冻结中性带内的变化，不等于震荡形态；uncertain是无法判断。各phase描述局部变化，可与端点方向不同。"
+        },
+        "expected_range": {
+          "$ref": "#/$defs/Range",
+          "description": "整段剩余窗口预期高低范围，须说明上下界依据、历史描述和反证；宽范围覆盖不能自动称为高质量。"
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Phase"
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "turning_points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurningPoint"
+          },
+          "minItems": 0,
+          "maxItems": 6
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "forecast_basis": {
+          "$ref": "#/$defs/ForecastBasis"
+        }
+      },
+      "required": [
+        "horizon_minutes",
+        "end_at",
+        "direction",
+        "expected_range",
+        "phases",
+        "turning_points",
+        "confidence"
+      ],
+      "description": "confidence仅为模型自评。阶段必须覆盖声明的剩余时间且不重叠；回放口径由ReviewMethod固定。"
+    },
+    "OrderRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "account_scope_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "position",
+            "pending_order"
+          ]
+        },
+        "broker_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "account_scope_id",
+        "kind",
+        "broker_id"
+      ]
+    },
+    "OrderAdvice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "order": {
+          "$ref": "#/$defs/OrderRef"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "hold",
+            "close",
+            "reduce",
+            "modify_sl_tp",
+            "cancel_pending",
+            "observe",
+            "no_change"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "proposed_stop_loss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proposed_take_profit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proposed_volume_lots": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UtcTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "order",
+        "action",
+        "reason",
+        "proposed_stop_loss",
+        "proposed_take_profit",
+        "proposed_volume_lots",
+        "valid_until"
+      ],
+      "description": "动作须适配订单种类；原包每个订单身份恰好出现一次。"
+    },
+    "TradingStyle": {
+      "type": "string",
+      "enum": [
+        "scalp",
+        "intraday"
+      ]
+    },
+    "AutomaticRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "bar_close",
+              "type": "string"
+            },
+            "timeframe": {
+              "type": "string",
+              "enum": [
+                "M1",
+                "M5",
+                "M15"
+              ]
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "gt",
+                "gte",
+                "lt",
+                "lte"
+              ]
+            },
+            "price": {
+              "$ref": "#/$defs/Decimal"
+            }
+          },
+          "required": [
+            "kind",
+            "timeframe",
+            "operator",
+            "price"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "quote_compare",
+              "type": "string"
+            },
+            "quote_side": {
+              "type": "string",
+              "enum": [
+                "bid",
+                "ask"
+              ]
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "gt",
+                "gte",
+                "lt",
+                "lte"
+              ]
+            },
+            "price": {
+              "$ref": "#/$defs/Decimal"
+            }
+          },
+          "required": [
+            "kind",
+            "quote_side",
+            "operator",
+            "price"
+          ]
+        }
+      ],
+      "description": "用于当前入场检查和重评条件，只支持明确闭柱或 Bid/Ask 比较。"
+    },
+    "AnalysisBasis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "main_thesis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "supporting_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1200
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "opposing_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1200
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "alternative": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "range_basis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "change_since_previous": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1200
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "reassessment_conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "trading_style": {
+                "$ref": "#/$defs/TradingStyle"
+              },
+              "condition": {
+                "$ref": "#/$defs/AutomaticRule"
+              }
+            },
+            "required": [
+              "trading_style",
+              "condition"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "main_thesis",
+        "supporting_evidence",
+        "opposing_evidence",
+        "alternative",
+        "range_basis",
+        "change_since_previous",
+        "limitations",
+        "reassessment_conditions"
+      ]
+    },
+    "CandidateAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trading_style": {
+          "$ref": "#/$defs/TradingStyle"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "candidate",
+            "no_candidate"
+          ]
+        },
+        "plan_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "pattern": "\\S"
+        },
+        "missing_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "pattern": "\\S"
+          },
+          "minItems": 0,
+          "maxItems": 6,
+          "description": "无法形成合格候选时缺少的具体依据或表达能力；候选尚未触发的条件保存在方案规则中。"
+        }
+      },
+      "required": [
+        "trading_style",
+        "outcome",
+        "plan_key",
+        "rationale",
+        "missing_conditions"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "no_candidate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "plan_key": {
+                "type": "null"
+              },
+              "missing_conditions": {
+                "minItems": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "plan_key": {
+                "$ref": "#/$defs/Id"
+              },
+              "missing_conditions": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ExperienceCaseAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "review_ref": {
+          "$ref": "#/$defs/Id"
+        },
+        "relevance": {
+          "type": "string",
+          "enum": [
+            "applicable",
+            "partial",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "current_evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "similarities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "minItems": 0,
+          "maxItems": 4
+        },
+        "differences": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "minItems": 0,
+          "maxItems": 4
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "adopt",
+            "do_not_adopt",
+            "uncertain"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        }
+      },
+      "required": [
+        "review_ref",
+        "relevance",
+        "current_evidence_refs",
+        "similarities",
+        "differences",
+        "decision",
+        "reason"
+      ]
+    },
+    "ExperienceApplication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "digest_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "reviewed_no_change",
+            "unavailable"
+          ]
+        },
+        "case_assessments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExperienceCaseAssessment"
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "minItems": 0,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "digest_id",
+        "status",
+        "case_assessments",
+        "limitations"
+      ]
+    },
+    "PredictionAdjustment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "horizon_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10080
+        },
+        "aspects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "direction",
+              "range",
+              "phases",
+              "turning_points",
+              "confidence",
+              "reassessment"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true
+        },
+        "related_review_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "adjusted",
+            "retained",
+            "caution"
+          ]
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        }
+      },
+      "required": [
+        "horizon_minutes",
+        "aspects",
+        "related_review_refs",
+        "action",
+        "explanation"
+      ]
+    },
+    "ObservedEntryCheck": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "bar_close",
+              "type": "string"
+            },
+            "timeframe": {
+              "type": "string",
+              "enum": [
+                "M1",
+                "M5",
+                "M15"
+              ]
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "gt",
+                "gte",
+                "lt",
+                "lte"
+              ]
+            },
+            "price": {
+              "$ref": "#/$defs/Decimal"
+            },
+            "observation": {
+              "type": "string",
+              "enum": [
+                "background",
+                "new_since_available",
+                "new_since_activation"
+              ]
+            },
+            "purpose": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          },
+          "required": [
+            "kind",
+            "timeframe",
+            "operator",
+            "price",
+            "observation",
+            "purpose"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "quote_compare",
+              "type": "string"
+            },
+            "quote_side": {
+              "type": "string",
+              "enum": [
+                "bid",
+                "ask"
+              ]
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "gt",
+                "gte",
+                "lt",
+                "lte"
+              ]
+            },
+            "price": {
+              "$ref": "#/$defs/Decimal"
+            },
+            "observation": {
+              "type": "string",
+              "enum": [
+                "background",
+                "new_since_available",
+                "new_since_activation"
+              ]
+            },
+            "purpose": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          },
+          "required": [
+            "kind",
+            "quote_side",
+            "operator",
+            "price",
+            "observation",
+            "purpose"
+          ]
+        }
+      ],
+      "description": "1.6.0入场检查：background持续背景；new_since_available可用后的新事件；new_since_activation严格晚于激活的新事件。每项purpose说明独立用途；入场时重核最新观察，不锁存背景。"
+    },
+    "ForecastBasis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "direction_basis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "range_basis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "supporting_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "opposing_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "minItems": 0,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "direction_basis",
+        "range_basis",
+        "supporting_evidence",
+        "opposing_evidence",
+        "evidence_refs",
+        "limitations"
+      ],
+      "description": "逐周期主判断和反对证据；范围覆盖整段剩余窗口，不能用候选目标价差替代。事实不足明确说明且confidence=null。简短说明，不重复全局规则。"
+    },
+    "HoldingExit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AutomaticRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "condition",
+        "reason"
+      ],
+      "description": "成交后结构退出规则。仅真实成交后新观察生效；null须解释没有可定义条件，不能强凑或事后补写旧方案。"
+    },
+    "TargetAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target_price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "weakened",
+            "invalidated",
+            "unknown"
+          ]
+        },
+        "supporting_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "opposing_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "obstacles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "time_basis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "change_since_previous": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 8
+        }
+      },
+      "required": [
+        "target_price",
+        "state",
+        "supporting_evidence",
+        "opposing_evidence",
+        "obstacles",
+        "time_basis",
+        "change_since_previous",
+        "limitations"
+      ],
+      "description": "对原关联目标的当前证据判断，不是到达概率；未知或目标缺失如实保留。"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "1.1.0",
+              "1.2.0",
+              "1.3.0",
+              "1.4.0",
+              "1.5.0",
+              "1.6.0",
+              "1.7.0"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "analysis_basis"
+        ],
+        "properties": {
+          "plans": {
+            "items": {
+              "required": [
+                "trading_style",
+                "entry_checks"
+              ],
+              "properties": {
+                "max_holding_minutes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 720
+                },
+                "entry": {
+                  "properties": {
+                    "zone": {
+                      "$ref": "#/$defs/Range"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "1.2.0",
+              "1.3.0",
+              "1.4.0",
+              "1.5.0",
+              "1.6.0",
+              "1.7.0"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "candidate_assessments"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "candidate_assessments"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "1.3.0",
+              "1.4.0",
+              "1.5.0",
+              "1.6.0",
+              "1.7.0"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "plans": {
+            "items": {
+              "required": [
+                "post_activation_invalidation"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "plans": {
+            "items": {
+              "not": {
+                "required": [
+                  "post_activation_invalidation"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "1.4.0",
+              "1.5.0",
+              "1.6.0",
+              "1.7.0"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "experience_application",
+          "prediction_adjustments"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "experience_application"
+              ]
+            },
+            {
+              "required": [
+                "prediction_adjustments"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "1.5.0",
+              "1.6.0",
+              "1.7.0"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "plans": {
+            "items": {
+              "required": [
+                "holding_time_basis"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "plans": {
+            "items": {
+              "not": {
+                "required": [
+                  "holding_time_basis"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              "1.6.0",
+              "1.7.0"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "horizons": {
+            "items": {
+              "required": [
+                "forecast_basis"
+              ]
+            }
+          },
+          "plans": {
+            "items": {
+              "properties": {
+                "entry_checks": {
+                  "items": {
+                    "$ref": "#/$defs/ObservedEntryCheck"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "horizons": {
+            "items": {
+              "not": {
+                "required": [
+                  "forecast_basis"
+                ]
+              }
+            }
+          },
+          "plans": {
+            "items": {
+              "properties": {
+                "entry_checks": {
+                  "items": {
+                    "$ref": "#/$defs/AutomaticRule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.7.0"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "plans": {
+            "items": {
+              "required": [
+                "holding_exit"
+              ]
+            }
+          },
+          "order_advice": {
+            "items": {
+              "required": [
+                "target_assessment"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "plans": {
+            "items": {
+              "not": {
+                "required": [
+                  "holding_exit"
+                ]
+              }
+            }
+          },
+          "order_advice": {
+            "items": {
+              "not": {
+                "required": [
+                  "target_assessment"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

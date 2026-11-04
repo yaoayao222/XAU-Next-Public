@@ -1,0 +1,1241 @@
+{
+  "schema_version": "1.0.0",
+  "data_kind": "SYNTHETIC",
+  "status": "expected_results_only_application_not_implemented",
+  "notes": [
+    "示例100等价格为算术样例，不是实际市场价格。",
+    "本轮只能验证schema、算术预期和文档一致性；应用行为须实施后运行。",
+    "AC-23属于V1.1。"
+  ],
+  "model_api_integrity_cases": [
+    {
+      "id": "MI-05",
+      "data_kind": "SYNTHETIC",
+      "scenario": "流式心跳、角色、空文本、推理增量、答案增量及终止事件分开抵达；非流式、失败及畸形帧",
+      "expected": "separate local frame timings; no content in diagnostics; unknown stays null; original bytes and terminal/failure rules unchanged; no retry"
+    },
+    {
+      "id": "MI-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "合成小测丢失连字符、下划线、负号或中文；另有等价JSON转义",
+      "expected": "changed values fail and preserve raw; equivalent decoded values pass; no retry"
+    },
+    {
+      "id": "MI-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "旧小测成功记录、预算变更或旧排队测试",
+      "expected": "old history stays readable; no integrity capability upgrade or queued old request send"
+    },
+    {
+      "id": "MI-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "非法紧凑日期和缺连字符引用同时出现，另有歧义引用或错误类型",
+      "expected": "combined field diagnostics without mutation; only unique frozen reference hinted; schema types retained"
+    },
+    {
+      "id": "MI-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "TCP、TLS或请求写出后等待响应头失败；事件参数含秘密、事件数量溢出",
+      "expected": "allowlisted bounded events and useful phase; no secret/exception text or retry"
+    }
+  ],
+  "default_horizon_cases": [
+    {
+      "id": "DH-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "页面/直接API/自动准备省略周期；启用scalp与默认日内180/360/720",
+      "expected": "all freeze 30/60/180/360/720; packet and API projection agree; no model call during preparation"
+    },
+    {
+      "id": "DH-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "设置改为240/480后更新旧三周期预测，或者显式自定义周期",
+      "expected": "update inherits original windows and endpoints; explicit custom arrays preserved; original packets and reviews unchanged"
+    },
+    {
+      "id": "DH-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "默认并集超过6项，或显式null/空/重复周期",
+      "expected": "clear rejection without silent truncation or model call; automatic preparation cannot disrupt fact refresh"
+    }
+  ],
+  "money_vectors": [
+    {
+      "id": "M01-long-fill-side",
+      "formula": "plan",
+      "input": {
+        "side": "long",
+        "entry": "100",
+        "stop": "98.8",
+        "target": "103",
+        "contract_size": "100",
+        "lots": "0.01",
+        "cost_at_stop": "0.4",
+        "cost_at_target": "0.4"
+      },
+      "expected": {
+        "gross_stop_loss": "1.2",
+        "planned_loss": "1.6",
+        "planned_net_profit": "2.6",
+        "net_rr": "1.625"
+      }
+    },
+    {
+      "id": "M02-short-fill-side",
+      "formula": "plan",
+      "input": {
+        "side": "short",
+        "entry": "100",
+        "stop": "101.2",
+        "target": "98",
+        "contract_size": "100",
+        "lots": "0.01",
+        "cost_at_stop": "0.4",
+        "cost_at_target": "0.4"
+      },
+      "expected": {
+        "gross_stop_loss": "1.2",
+        "planned_loss": "1.6",
+        "planned_net_profit": "1.6",
+        "net_rr": "1"
+      }
+    },
+    {
+      "id": "M03-budget-no-profit-replenish",
+      "formula": "budget",
+      "input": {
+        "initial_equity": "40",
+        "cumulative_cap": "20",
+        "per_trade_cap": "2",
+        "net_results": [
+          "-5",
+          "3",
+          "-14"
+        ]
+      },
+      "expected": {
+        "equity": "24",
+        "consumed": "19",
+        "remaining": "1",
+        "allowed_next_risk": "1"
+      }
+    },
+    {
+      "id": "M04-do-not-compare-rounded",
+      "formula": "budget_compare",
+      "input": {
+        "exact_risk": "2.004",
+        "cap": "2.00"
+      },
+      "expected": {
+        "display": "2.00",
+        "fits": false
+      }
+    },
+    {
+      "id": "M05-inclusive-budget-cap",
+      "formula": "budget_compare",
+      "input": {
+        "exact_risk": "2.00",
+        "cap": "2.00"
+      },
+      "expected": {
+        "display": "2.00",
+        "fits": true
+      }
+    },
+    {
+      "id": "M06-partial-closes-signed-costs",
+      "formula": "actual",
+      "input": {
+        "closed_lots": [
+          "0.006",
+          "0.004"
+        ],
+        "exit_prices": [
+          "101",
+          "102"
+        ],
+        "realized_profit": [
+          "0.6",
+          "0.8"
+        ],
+        "signed_commission": [
+          "-0.12",
+          "-0.08"
+        ],
+        "signed_swap": [
+          "0",
+          "0"
+        ],
+        "signed_other_fee": [
+          "0",
+          "0"
+        ]
+      },
+      "expected": {
+        "weighted_exit": "101.4",
+        "complete_net": "1.2"
+      }
+    },
+    {
+      "id": "M07-forecast-range",
+      "formula": "range",
+      "input": {
+        "pred_low": "98",
+        "pred_high": "104",
+        "actual_low": "97.5",
+        "actual_high": "103.5"
+      },
+      "expected": {
+        "lower_excess": "0.5",
+        "upper_excess": "0",
+        "fully_contained": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "AC-01",
+      "title": "新目录独立启动",
+      "release": "V1",
+      "given": {
+        "legacy_available": false
+      },
+      "when": [
+        "安装锁定依赖",
+        "分别构建前后端",
+        "启动独立端口"
+      ],
+      "expected": {
+        "legacy_reads": 0,
+        "web_build_independent": true,
+        "api_health": "ok"
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-02",
+      "title": "快照展示",
+      "release": "V1",
+      "given": {
+        "source_kind": "synthetic",
+        "bid": "99.98",
+        "ask": "100.00",
+        "contract_size": "100"
+      },
+      "when": [
+        "读取workspace"
+      ],
+      "expected": {
+        "quote_side_preserved": true,
+        "synthetic_label_visible": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-03",
+      "title": "请求冻结",
+      "release": "V1",
+      "given": {
+        "snapshot_id": "snap-demo-1",
+        "cutoff": "2026-10-12T02:00:00Z",
+        "horizons": [
+          180,
+          360,
+          720
+        ],
+        "quote_boundary_case": {
+          "market_cutoff": "2026-10-13T05:43:01.308Z",
+          "latest_tick_at": "2026-10-13T05:43:01.534Z",
+          "prior_tick_at": "2026-10-13T05:43:01.244Z",
+          "prior_bid": "100",
+          "prior_ask": "100.02"
+        }
+      },
+      "when": [
+        "创建请求但不导入"
+      ],
+      "expected": {
+        "request_exists": true,
+        "new_forecast_version_count": 0,
+        "packet_cites_snapshot": true,
+        "quote_boundary_case": {
+          "selected_quote_at": "2026-10-13T05:43:01.244Z",
+          "packet_preserves_quote": true,
+          "market_cutoff_unchanged": true,
+          "source_timestamps_unchanged": true,
+          "unavailable_if_no_valid_prior_tick": true
+        }
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-04",
+      "title": "合法答案",
+      "release": "V1",
+      "given": {
+        "fixture": "analysis-answer.valid.json",
+        "available_at": "2026-10-12T02:07:00Z"
+      },
+      "when": [
+        "导入答案"
+      ],
+      "expected": {
+        "version_count": 1,
+        "raw_preserved": true,
+        "plan_count": 1,
+        "available_at": "2026-10-12T02:07:00Z"
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-05",
+      "title": "错误输入",
+      "release": "V1",
+      "given": {
+        "variants": "answer-variants.json"
+      },
+      "when": [
+        "逐个提交变体"
+      ],
+      "expected": {
+        "schema_and_business_errors_distinguished": true,
+        "no_partial_version": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-06",
+      "title": "重复与冲突",
+      "release": "V1",
+      "given": {
+        "request_id": "req-demo-1",
+        "same_bytes_retries": 3,
+        "concurrent_requests": 2
+      },
+      "when": [
+        "同键同内容重试",
+        "同键改内容"
+      ],
+      "expected": {
+        "version_count": 1,
+        "changed_payload_status": 409
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-07",
+      "title": "窗口内外更新",
+      "release": "V1",
+      "given": {
+        "original_end": "2026-10-12T14:00:00Z",
+        "update_cutoff": "2026-10-12T04:00:00Z"
+      },
+      "when": [
+        "提交未来段更新",
+        "在14:01提交新更新"
+      ],
+      "expected": {
+        "window_end_unchanged": true,
+        "past_update_code": "EXPIRED_REQUEST",
+        "past_phases_not_rewritten": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-08",
+      "title": "并发版本",
+      "release": "V1",
+      "given": {
+        "base_version_id": "v1",
+        "different_requests": 2
+      },
+      "when": [
+        "同时导入两个更新"
+      ],
+      "expected": {
+        "commits": 1,
+        "conflicts": 1,
+        "conflict_status": 409
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-09",
+      "title": "崩溃恢复",
+      "release": "V1",
+      "given": {
+        "crash_points": [
+          "before_compute",
+          "before_commit",
+          "after_commit_before_response",
+          "expired_lease_return"
+        ]
+      },
+      "when": [
+        "逐点中断后重启"
+      ],
+      "expected": {
+        "duplicate_business_results": 0,
+        "expired_worker_cannot_commit": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-10",
+      "title": "触发失效和边界",
+      "release": "V1",
+      "given": {
+        "available_at": "2026-10-12T02:07:00Z",
+        "old_trigger": "2026-10-12T02:05:00Z",
+        "later_invalidation": "2026-10-12T02:10:00Z",
+        "entry_deadline": "2026-10-12T02:30:00Z"
+      },
+      "when": [
+        "处理旧触发",
+        "处理失效",
+        "截止恰好触价"
+      ],
+      "expected": {
+        "old_trigger_eligible": false,
+        "revives_after_invalidation": false,
+        "entry_at_deadline": false,
+        "same_close_invalidation_priority": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-11",
+      "title": "金额与网格",
+      "release": "V1",
+      "given": {
+        "vectors": [
+          "M01-long-fill-side",
+          "M02-short-fill-side",
+          "M04-do-not-compare-rounded",
+          "M05-inclusive-budget-cap"
+        ],
+        "tick_size": "0.01"
+      },
+      "when": [
+        "计算并导出",
+        "传入100.001"
+      ],
+      "expected": {
+        "matches_vectors": true,
+        "off_grid_code": "PRICE_GRID_INVALID",
+        "spread_double_counted": false
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-12",
+      "title": "缺费用或只给区间",
+      "release": "V1",
+      "given": {
+        "gross_loss": "1.50",
+        "commission": null,
+        "entry_price": null,
+        "entry_zone": [
+          "99",
+          "101"
+        ]
+      },
+      "when": [
+        "请求金额评估"
+      ],
+      "expected": {
+        "planned_loss": null,
+        "budget_state": "unknown",
+        "midpoint_invented": false,
+        "view_still_available": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-13",
+      "title": "券商事实与人工意图",
+      "release": "V1",
+      "given": {
+        "orders_read": "unavailable",
+        "manual_decision": "close",
+        "broker_close_confirmed": false
+      },
+      "when": [
+        "查看持仓",
+        "登记意图"
+      ],
+      "expected": {
+        "shown_as_empty": false,
+        "shown_as_actually_closed": false,
+        "unlinked_trade_kept": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-14",
+      "title": "退出与歧义",
+      "release": "V1",
+      "given": {
+        "entry_time": "2026-10-12T02:00:00Z",
+        "max_holding_minutes": 30,
+        "exit_bid": "101",
+        "entry_ask": "100",
+        "cost": "0.20",
+        "contract_size": "100",
+        "lots": "0.01"
+      },
+      "when": [
+        "02:30按Bid退出",
+        "另例仅有同柱SL/TP双触及"
+      ],
+      "expected": {
+        "first_outcome": "TIME_EXIT",
+        "first_net_pnl": "0.80",
+        "second_outcome": "AMBIGUOUS",
+        "timeout_after_seconds": 5
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-15",
+      "title": "可用时间因果",
+      "release": "V1",
+      "given": {
+        "request_cutoff": "2026-10-12T02:00:00Z",
+        "answer_available": "2026-10-12T02:07:00Z",
+        "review_available": "2026-10-12T02:10:00Z"
+      },
+      "when": [
+        "评价02:03入场",
+        "导出截止02:05的包"
+      ],
+      "expected": {
+        "entry_executable": false,
+        "future_review_cited": false,
+        "later_valid_opportunity_may_be_evaluated": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-16",
+      "title": "复盘修订",
+      "release": "V1",
+      "given": {
+        "review_revision": 1,
+        "costs_complete": false
+      },
+      "when": [
+        "补齐真实收费并复盘"
+      ],
+      "expected": {
+        "new_revision": 2,
+        "old_revision_preserved": true,
+        "reserve_not_actual_fee": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-17",
+      "title": "完整分母",
+      "release": "V1",
+      "given": {
+        "forecast_count": 10,
+        "scorable": 6,
+        "unknown": 2,
+        "not_triggered": 2
+      },
+      "when": [
+        "生成经验摘要"
+      ],
+      "expected": {
+        "denominator": 10,
+        "unknown_as_zero": false,
+        "three_review_kinds_separated": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-18",
+      "title": "配置快照",
+      "release": "V1",
+      "given": {
+        "old_settings_revision": 1,
+        "new_revision": 2
+      },
+      "when": [
+        "更新设置",
+        "回看旧金额",
+        "重新评估"
+      ],
+      "expected": {
+        "old_evaluation_revision": 1,
+        "new_evaluation_revision": 2
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-19",
+      "title": "SSE断线",
+      "release": "V1",
+      "given": {
+        "snapshot_cursor": 100,
+        "events_after_snapshot": [
+          101,
+          102
+        ],
+        "old_query_revision": 4,
+        "new_query_revision": 5
+      },
+      "when": [
+        "断线重连",
+        "旧查询晚返回",
+        "cursor过保留边界"
+      ],
+      "expected": {
+        "events_recovered": [
+          101,
+          102
+        ],
+        "displayed_revision": 5,
+        "old_cursor_action": "resync.required"
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-20",
+      "title": "契约生成",
+      "release": "V1",
+      "given": {
+        "contracts": [
+          "../contracts/openapi.json",
+          "../contracts/analysis-answer.schema.json"
+        ]
+      },
+      "when": [
+        "生成Python和TS",
+        "再生成一次",
+        "运行真实接口比对"
+      ],
+      "expected": {
+        "diff_after_second_generation": false,
+        "external_refs_resolved_offline": true,
+        "null_and_decimal_agree": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-21",
+      "title": "真实只读闭环",
+      "release": "V1",
+      "given": {
+        "source": "real_mt5_required"
+      },
+      "when": [
+        "采集",
+        "人工网页分析",
+        "导入",
+        "更新",
+        "重启",
+        "到期复盘"
+      ],
+      "expected": {
+        "synthetic_substitution_allowed": false,
+        "order_write_calls": 0,
+        "real_result_required": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-22",
+      "title": "性能与恢复",
+      "release": "V1",
+      "given": {
+        "benchmark_spec": "REBUILD_SPEC.md section 9"
+      },
+      "when": [
+        "运行固定基准",
+        "后台复盘同时操作页面"
+      ],
+      "expected": {
+        "targets_must_be_measured": true,
+        "external_wait_separately_reported": true
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-23",
+      "title": "40美元事件回放",
+      "release": "V1.1",
+      "given": {
+        "available_order": [
+          "A",
+          "B"
+        ],
+        "candidate_entry_times": {
+          "A": "2026-10-12T02:20:00Z",
+          "B": "2026-10-12T02:10:00Z"
+        },
+        "B_exit": "2026-10-12T02:30:00Z"
+      },
+      "when": [
+        "全局事件排序",
+        "处理持仓竞争",
+        "另例未知净结果"
+      ],
+      "expected": {
+        "first_entry": "B",
+        "A_reason": "OVERLAPPING_POSITION",
+        "unknown_budget_chain": "BLOCKED_DATA",
+        "after_stop": "NOT_EVALUATED_AFTER_BLOCK",
+        "profit_replenishes_budget": false
+      },
+      "execution_status": "not_run_no_application"
+    },
+    {
+      "id": "AC-24",
+      "title": "恢复与提供方替换",
+      "release": "V1",
+      "given": {
+        "new_data_root": true,
+        "same_answer_contract": true
+      },
+      "when": [
+        "备份与独立恢复",
+        "用fixture提供方替换人工回答来源"
+      ],
+      "expected": {
+        "identities_preserved": true,
+        "attachment_refs_resolved": true,
+        "core_model_changed": false
+      },
+      "execution_status": "not_run_no_application"
+    }
+  ],
+  "guided_decision_cases": [
+    {
+      "id": "GC-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "触发已满足，但当前 Ask 104 超过入场范围100至101和目标103",
+      "expected": "MISSED; no entry notification"
+    },
+    {
+      "id": "GC-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "02:00资料的超短线回答02:31才导入，原预测窗尚未结束",
+      "expected": "raw preserved; scalp STALE at 02:30; no new entry"
+    },
+    {
+      "id": "GC-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "02:00导入资料，两种模式同刻全部满足",
+      "expected": "one READY, primary first; second BLOCKED; one entry notice"
+    },
+    {
+      "id": "GC-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "旧通知等待投递时，报价过期或已有新版本",
+      "expected": "suppressed; never sent as current entry"
+    },
+    {
+      "id": "GC-05",
+      "data_kind": "SYNTHETIC",
+      "scenario": "关闭网页、重启后相同方案仍满足",
+      "expected": "background outbox works; no duplicate positive notification"
+    },
+    {
+      "id": "GC-06",
+      "data_kind": "SYNTHETIC",
+      "scenario": "已关联持仓原计划过期，已到成交后最长持仓时间",
+      "expected": "EXIT holding limit; original plan remains linked"
+    },
+    {
+      "id": "GC-07",
+      "data_kind": "SYNTHETIC",
+      "scenario": "历史窗口不足20或存在缺柱/未来柱",
+      "expected": "no invented quantiles; gaps/future excluded; originals unchanged"
+    },
+    {
+      "id": "GC-08",
+      "data_kind": "SYNTHETIC",
+      "scenario": "数据库0003升级通知表，原回答和复盘内容存在",
+      "expected": "backup before migration; original bytes unchanged; notification history recoverable"
+    },
+    {
+      "id": "GC-09",
+      "data_kind": "SYNTHETIC",
+      "scenario": "超短线及日内方案关联真实持仓后，平仓、解除关联并重启",
+      "expected": "USED remains; queued entry suppressed; original answer and position exit rules preserved"
+    },
+    {
+      "id": "GC-10",
+      "data_kind": "SYNTHETIC",
+      "scenario": "读取间隙内完成交易，尚未关联；未成交挂单另例取消",
+      "expected": "unattributed execution BLOCKED; pending cancellation alone does not consume"
+    },
+    {
+      "id": "GC-11",
+      "data_kind": "SYNTHETIC",
+      "scenario": "旧关联和成交投影；后台读取READY之后关联已成交方案",
+      "expected": "append-only backfill; missing proof UNKNOWN; concurrent READY not enqueued"
+    },
+    {
+      "id": "GC-12",
+      "data_kind": "SYNTHETIC",
+      "scenario": "整段M5/M15历史存在旧缺口，但最近两个闭柱完整、采集及时、报价侧明确",
+      "expected": "evaluate current close; preserve full-history incomplete; no fabricated bars"
+    },
+    {
+      "id": "GC-13",
+      "data_kind": "SYNTHETIC",
+      "scenario": "重评条件近期数据缺失，回答仍在有效期内；资料后续恢复",
+      "expected": "WAITING_DATA then automatic recheck; no repeated model requests or refresh notices solely for missing data"
+    },
+    {
+      "id": "GC-14",
+      "data_kind": "SYNTHETIC",
+      "scenario": "新版回答plans为空并成功保存",
+      "expected": "explicit imported-without-plans message; no manufactured candidates"
+    },
+    {
+      "id": "GC-15",
+      "data_kind": "SYNTHETIC",
+      "scenario": "有依据的1.2条件候选导入时尚未触发，后来触发后仍需回踩及当前金额检查",
+      "expected": "WAITING_TRIGGER/WAITING; trigger ACTIVE still WAITING; later current gates READY, only then notify"
+    },
+    {
+      "id": "GC-16",
+      "data_kind": "SYNTHETIC",
+      "scenario": "超短线及日内均无合格候选，分别提供缺少条件",
+      "expected": "two mode reasons; plans stay empty; no entry notification or fabricated candidate; raw text and reasons persist after restart"
+    },
+    {
+      "id": "GC-17",
+      "data_kind": "SYNTHETIC",
+      "scenario": "候选说明遗漏模式、矛盾、空缺口、假READY或新请求降级旧格式；旧请求保持兼容",
+      "expected": "reject invalid new answer with stored import attempt; accept original old request format without rewriting historical reasons"
+    },
+    {
+      "id": "GC-18",
+      "data_kind": "SYNTHETIC",
+      "scenario": "多空回踩方案已触发，执行价仍在回踩区间之外；重启后回到区间和限价",
+      "expected": "WAITING across trigger and restart; READY only with entry checks and current exact money; no waiting/refresh notices; one entry notice"
+    },
+    {
+      "id": "GC-19",
+      "data_kind": "SYNTHETIC",
+      "scenario": "回踩等待时失效、止损/目标、到期、旧MISSED、USED或资料缺失；普通市价/突破越过追入边界",
+      "expected": "retain all blocking and terminal gates; never resurrect historical terminal or used decisions"
+    },
+    {
+      "id": "GC-20",
+      "data_kind": "SYNTHETIC",
+      "scenario": "触发前及触发后失效条件成立，或者同事件触发和失效同时成立",
+      "expected": "INVALIDATED in both phases, invalidation wins; prompt and UI explain all-phase scope without rewriting old answers"
+    },
+    {
+      "id": "GC-21",
+      "data_kind": "SYNTHETIC",
+      "scenario": "等待背景未破坏，但激活后失效条件在触发前成立；随后触发、回踩及失效，包含重启和旧柱重放",
+      "expected": "WAITING before trigger; ACTIVE then WAITING/READY; post-activation invalidation only from activation event; global background always checked; old phase unchanged"
+    },
+    {
+      "id": "GC-22",
+      "data_kind": "SYNTHETIC",
+      "scenario": "新1.3候选的背景在冻结资料中已经失效、资料未知、触发蕴含失效或计划观察窗口不足",
+      "expected": "reject with field error; keep import attempt; old 1.0-1.2 records and rules remain readable and unchanged"
+    },
+    {
+      "id": "GC-23",
+      "data_kind": "SYNTHETIC",
+      "scenario": "预计有充分观察时间，但人工回答实际晚到，或入场截止恰好为闭柱时点",
+      "expected": "exclude endpoint close; preserve raw/deadlines; insufficient actual budget REFRESH_REQUIRED across restart; no entry notification or reference entry; countdown from original cutoff"
+    },
+    {
+      "id": "GC-24",
+      "data_kind": "SYNTHETIC",
+      "scenario": "导入前已有匹配柱；导入后M5突破、区间外回踩等待、检查暂未满足，进入DUE后才达到全部入场条件",
+      "expected": "no pre-import activation; WAITING through normal stages and DUE; READY with current money; zero early reanalysis, one preparation and one pending request"
+    },
+    {
+      "id": "GC-25",
+      "data_kind": "SYNTHETIC",
+      "scenario": "真正失效、入场截止或分析截止，同时可能缺行情；准备提醒尚未送达",
+      "expected": "specific stopping_reason with condition/deadline/time/next step; true stop outranks missing data; old preparation suppressed; required notice once"
+    },
+    {
+      "id": "GC-26",
+      "data_kind": "SYNTHETIC",
+      "scenario": "快速、较慢、接近截止及截止后导入；请求创建前已有资料年龄；候选截止早于分析截止",
+      "expected": "split ages; fixed cutoff; count remaining closes exclusively before deadline; match complexity budget; earlier preparation does not cancel valid candidate"
+    },
+    {
+      "id": "GC-27",
+      "data_kind": "SYNTHETIC",
+      "scenario": "分析过期后仍有已可靠关联及完整开仓证据的持仓；模型重评成立后价格返回",
+      "expected": "position original exits remain; timer starts at actual entry; confirmed reassessment persists across restart without reviving original analysis"
+    },
+    {
+      "id": "GC-28",
+      "data_kind": "SYNTHETIC",
+      "scenario": "页面无新快照时达到已知入场截止；旧无阶段刷新通知升级；新请求把正常触发声明为重评",
+      "expected": "UI stops stale waiting/readiness with exact deadline; legacy notification not resent; new contradictory candidate rejected without rewriting old frozen request"
+    }
+  ],
+  "scalp_price_scale_cases": [
+    {
+      "id": "SC-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "4000到4003，tick=0.01，合约100，0.01手",
+      "expected": "金价3美元等于300tick；账户毛收益另算，不改变价差定义"
+    },
+    {
+      "id": "SC-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "新请求冻结2至5美元偏好后设置改为2至4",
+      "expected": "旧请求包/回答/方案/复盘原样，新请求使用新设置"
+    },
+    {
+      "id": "SC-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "未来、未闭柱、重复、缺柱、非对齐M1窗口",
+      "expected": "窗口unknown，数值null，不回退伪装完整"
+    },
+    {
+      "id": "SC-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "long/short与market/limit_retest/stop_breakout、边界网格、空交集、点差变化",
+      "expected": "精确意图与zone交集，执行侧正确，全区间空间与阈值位移可追溯"
+    },
+    {
+      "id": "SC-05",
+      "data_kind": "SYNTHETIC",
+      "scenario": "价格已越阈值但新闭柱未观察；激活后尚未回踩",
+      "expected": "不能READY，合法等待不判MISSED"
+    },
+    {
+      "id": "SC-06",
+      "data_kind": "SYNTHETIC",
+      "scenario": "远端超短线与合法日内同份；已有持仓",
+      "expected": "原回答完整保留，超短线BLOCKED；日内与原持仓管理不丢"
+    },
+    {
+      "id": "SC-07",
+      "data_kind": "SYNTHETIC",
+      "scenario": "近端合法方案全部触发/报价/检查/费用/预算/净比/保证金通过",
+      "expected": "可以READY；全有效区间最坏边界不满足净比时不能用有利当前价通过"
+    },
+    {
+      "id": "SC-08",
+      "data_kind": "SYNTHETIC",
+      "scenario": "API紧凑OHLC及新增近端字段和r15经验对象",
+      "expected": "行数据可无损复原，Schema完整，嵌套经验语义相等，隐私扩展不发送"
+    }
+  ],
+  "experience_feedback_cases": [
+    {
+      "id": "EF-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "API最终请求完整保留标签、嵌套周期、分母、缺失原因和方法引用",
+      "expected": "语义等同规定手工经验结构，隐私扩展不外发"
+    },
+    {
+      "id": "EF-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "旧请求在全局答案1.4.0升级后导入",
+      "expected": "使用原包冻结Schema，不增加新字段要求或改写原文"
+    },
+    {
+      "id": "EF-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "经验采用与调整说明引用不在冻结包",
+      "expected": "拒绝并给出字段路径；不伪造调整或概率"
+    },
+    {
+      "id": "EF-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "配对一组失败，另一组成功或未知",
+      "expected": "两组及全部预登记样本保留，正式业务分母和经验不变"
+    }
+  ],
+  "quality_path_alignment_cases": [
+    {
+      "id": "r17b-background-distance",
+      "given": "legal M5 background close97.80<97.90 holds; currentBid99.98; M1 activated; Ask100.00 inside entry; all original money gates pass",
+      "expected": "background_satisfied with null trigger displacement; no invented 2.09 price-crossing gate; READY only with all gates; later background loss waits; missing evidence remains unknown"
+    },
+    {
+      "id": "r17-background",
+      "given": "fresh M5 close before available_at satisfies frozen background",
+      "expected": "background rechecks it; new_since_available waits"
+    },
+    {
+      "id": "r17-post-trigger",
+      "given": "same M1 activates and passes check",
+      "expected": "new_since_activation waits for strictly later event"
+    },
+    {
+      "id": "r17-alignment",
+      "given": "new account snapshot arrives 5 seconds after selected market snapshot",
+      "expected": "bind original same-capture portfolio; future facts excluded"
+    },
+    {
+      "id": "r17-range",
+      "given": "wide and narrow ranges both contain actual path",
+      "expected": "report boundary error and width separately; no automatic high-quality label"
+    },
+    {
+      "id": "r17-cohort",
+      "given": "same version across three horizons/revisions",
+      "expected": "one version; independent sample count unknown; original cases preserved"
+    }
+  ],
+  "incremental_review_cases": [
+    {
+      "id": "IR-01",
+      "acceptance_ids": [
+        "AC-09",
+        "AC-14"
+      ],
+      "scenario": "completed review then manual rescan",
+      "expected": "no history capture and no duplicate revision"
+    },
+    {
+      "id": "IR-02",
+      "acceptance_ids": [
+        "AC-09"
+      ],
+      "scenario": "interruption after first saved item",
+      "expected": "first result survives; recovery computes remaining items only"
+    },
+    {
+      "id": "IR-03",
+      "acceptance_ids": [
+        "AC-14",
+        "AC-17"
+      ],
+      "scenario": "incomplete evidence unchanged across time, restart and rescan; then changed same-source historical content arrives",
+      "expected": "no timed reread or repeated job; changed evidence appends revision, preserves original; capture IDs and times alone do not unblock"
+    },
+    {
+      "id": "IR-04",
+      "acceptance_ids": [
+        "AC-09",
+        "AC-19"
+      ],
+      "scenario": "total review work exceeds lease across multiple short commits and browser remount",
+      "expected": "renew between items; progress restored and duplicate button disabled"
+    }
+  ],
+  "evidence_review_cases": [
+    {
+      "id": "ER-01",
+      "acceptance_ids": [
+        "AC-09",
+        "AC-14"
+      ],
+      "scenario": "same actual-trade facts sampled again or forecast-only review runs",
+      "expected": "no duplicate trade calculation; fee correction and later reversal each evaluated once"
+    },
+    {
+      "id": "ER-02",
+      "acceptance_ids": [
+        "AC-14",
+        "AC-17"
+      ],
+      "scenario": "new scalp plan has no historical eligibility trajectory",
+      "expected": "keep original unknown result; no endless quote reread to fabricate historical eligibility"
+    }
+  ],
+  "review_alignment_cases": [
+    {
+      "id": "RA-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "冻结Bid99、下一完整M1开盘100、原端点Bid99.5，未来1秒报价110",
+      "expected": "prediction_review/3 direction long delta 0.5; old M1 short retained; future quote excluded"
+    },
+    {
+      "id": "RA-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "端点逐笔资料缺失、过时、同毫秒冲突或晚于评价才可用",
+      "expected": "direction unknown; no M1 replacement; no change to original forecast, end time or historical score"
+    },
+    {
+      "id": "RA-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "TMGM UTC+3周五23:55之后缺柱，收市前完整；另一个样本交易分钟也缺失",
+      "expected": "market_closed versus mixed; DATA_INCOMPLETE retained; no synthetic candles or weekend extension"
+    },
+    {
+      "id": "RA-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "来源不匹配或公布休市时段有保存行情",
+      "expected": "unverified or schedule_conflict; never infer confirmed closure from missing data"
+    }
+  ],
+  "holding_management_r25_cases": [
+    {
+      "id": "HM-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "结构退出先于止损，真实成交后新观察触发",
+      "expected": "EXIT with exact rule and observed time; original stop and target unchanged"
+    },
+    {
+      "id": "HM-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "旧原分析重评条件触发",
+      "expected": "holding reassessment alert only; no new historical exit rule"
+    },
+    {
+      "id": "HM-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "结构失效后价格返回及重启",
+      "expected": "confirmed event persists; one notice per holding condition"
+    },
+    {
+      "id": "HM-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "结构资料缺失、成交前闭柱或资料过时",
+      "expected": "unknown or wait for post-entry observation; never claim proved target support"
+    },
+    {
+      "id": "HM-05",
+      "data_kind": "SYNTHETIC",
+      "scenario": "手动准备持仓包及重复点击",
+      "expected": "same fresh pending packet; zero model calls; deadline unchanged"
+    },
+    {
+      "id": "HM-06",
+      "data_kind": "SYNTHETIC",
+      "scenario": "重评回答导入",
+      "expected": "separate raw/version; no forecast, plan replacement, timing reset or broker action"
+    },
+    {
+      "id": "HM-07",
+      "data_kind": "SYNTHETIC",
+      "scenario": "原目标被改写、缺证据或未知却声称持有",
+      "expected": "strict validation failure, original raw retained"
+    },
+    {
+      "id": "HM-08",
+      "data_kind": "SYNTHETIC",
+      "scenario": "持仓数量、关联或SL/TP变化后使用旧包",
+      "expected": "old opinion historical; reject model start before enqueue"
+    },
+    {
+      "id": "HM-09",
+      "data_kind": "SYNTHETIC",
+      "scenario": "原退出期限到达且报价缺失",
+      "expected": "known time exit independently; no waiting for model"
+    },
+    {
+      "id": "HM-10",
+      "data_kind": "SYNTHETIC",
+      "scenario": "正式历史旧包与原回答",
+      "expected": "read-only frozen-schema validation; no re-encoding or source evidence rewrite"
+    }
+  ],
+  "decision_context_cases": [
+    {
+      "id": "DC-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "对称上涨/下跌的三根连续Bid闭柱",
+      "expected": "report rising/falling relations; no signal, future side, auto reversal or probability"
+    },
+    {
+      "id": "DC-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "缺柱/重复/未来采集/周期或OHLC异常/非Bid",
+      "expected": "unknown; no fallback to older windows; future outside-window bars excluded"
+    },
+    {
+      "id": "DC-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "前版可用时点缺失或晚于本次截止",
+      "expected": "previous unavailable; no future thesis or checks"
+    },
+    {
+      "id": "DC-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "原背景条件当前成立/不成立/缺资料",
+      "expected": "met_now/not_met_now/unknown; no persisted-event or lifecycle mutation"
+    },
+    {
+      "id": "DC-05",
+      "data_kind": "SYNTHETIC",
+      "scenario": "手工/实际HTTP投影及模拟生成导入",
+      "expected": "same decision facts; 1.7 schema and raw answer preserved; no real provider call"
+    }
+  ],
+  "entry_selection_cases": [
+    {
+      "id": "ES-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "突破延续而原回踩区间未到；独立限定范围内市价/突破候选",
+      "expected": "old retest remains WAITING; separately defined valid mode can qualify; beyond upper boundary MISSED; no auto conversion"
+    },
+    {
+      "id": "ES-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "回踩有依据或全部方式缺乏优势",
+      "expected": "retest and no_candidate remain valid choices; no enforced mode quota; raw answer preserved"
+    },
+    {
+      "id": "ES-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "预计可用13:00:14.529；M5确认后回踩",
+      "expected": "baseline minimum 13:15; market 13:10:10; stop_breakout 13:11; later valid_from requires recalculation"
+    },
+    {
+      "id": "ES-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "未来/过时报价或额外嵌套字段",
+      "expected": "unknown quote; allowlist drops extensions; no future prices or probability"
+    },
+    {
+      "id": "ES-05",
+      "data_kind": "SYNTHETIC",
+      "scenario": "14/15同冻结输入和模拟HTTP/导入",
+      "expected": "only entry_selection_context and prompt identity differ in facts; prompt14 legacy remains exact; no real model call"
+    }
+  ],
+  "forecast_reference_cases": [
+    {
+      "id": "FR-01",
+      "data_kind": "SYNTHETIC",
+      "scenario": "逐时长Bid锚点、原端点、旧闭柱基准与偏移对照",
+      "expected": "independent rows; Decimal reference arithmetic; original input unchanged; no selected direction"
+    },
+    {
+      "id": "FR-02",
+      "data_kind": "SYNTHETIC",
+      "scenario": "未来、过时、身份不符或数值异常报价",
+      "expected": "unknown references; no computed prices"
+    },
+    {
+      "id": "FR-03",
+      "data_kind": "SYNTHETIC",
+      "scenario": "缓存统计被修改或与原始闭柱不一致",
+      "expected": "unknown; do not use a forged future reference"
+    },
+    {
+      "id": "FR-04",
+      "data_kind": "SYNTHETIC",
+      "scenario": "更新仅余19分16秒；部分原周期已结束",
+      "expected": "preserve original endpoint; remaining_seconds1156 vs statistics19minutes; ended rows do not restart"
+    },
+    {
+      "id": "FR-05",
+      "data_kind": "SYNTHETIC",
+      "scenario": "手工和模拟HTTP外发；未知嵌套扩展",
+      "expected": "same reference values; allowlist excludes extensions; prompt16/projection9; old15/projection8 unchanged"
+    },
+    {
+      "id": "FR-06",
+      "data_kind": "SYNTHETIC",
+      "scenario": "历史窗口不足20或未来原始闭柱",
+      "expected": "small samples unknown; future bars ignored; no current probability inferred"
+    }
+  ]
+}

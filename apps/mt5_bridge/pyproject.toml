@@ -1,0 +1,8 @@
+[project]
+name = "xau-next-mt5-bridge"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["MetaTrader5>=5,<6; sys_platform == 'win32'", "jsonschema[format-nongpl]>=4.23,<5"]
+
+[tool.uv]
+package = false

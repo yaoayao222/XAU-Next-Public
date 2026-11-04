@@ -1,0 +1,11 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"urn:xau-next:mt5-bridge:1",
+  "oneOf":[{"$ref":"#/$defs/Request"},{"$ref":"#/$defs/Response"}],
+  "$defs":{
+    "Request":{"type":"object","additionalProperties":false,"required":["protocol_version","request_id","operation","params","deadline"],"properties":{
+      "protocol_version":{"const":"1"},"request_id":{"type":"string"},"operation":{"enum":["health","identity","snapshot","history","profit","margin"]},"params":{"type":"object"},"deadline":{"type":"string","format":"date-time","pattern":"Z$"}}},
+    "Response":{"type":"object","additionalProperties":false,"required":["protocol_version","request_id","captured_at","source_identity","result","error"],"properties":{
+      "protocol_version":{"const":"1"},"request_id":{"type":"string"},"captured_at":{"type":"string","format":"date-time","pattern":"Z$"},"source_identity":{"type":["object","null"]},"result":{"type":["object","null"]},"error":{"type":["object","null"],"properties":{"code":{"type":"string"},"detail":{"type":"string"},"retryable":{"type":"boolean"}},"required":["code","detail","retryable"],"additionalProperties":false}}}
+  }
+}

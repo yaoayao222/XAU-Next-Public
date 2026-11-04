@@ -1,0 +1,35 @@
+name: Verify local V1 candidate
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.16.0'
+      - name: Locked Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install uv==0.13.0
+          uv sync --locked
+          uv sync --locked --project apps/mt5_bridge
+      - name: Locked Web dependencies and generated contracts
+        shell: pwsh
+        run: |
+          npx --yes pnpm@10.28.2 install --frozen-lockfile
+          npx --yes pnpm@10.28.2 contracts:check
+          npx --yes pnpm@10.28.2 architecture:check
+          npx --yes pnpm@10.28.2 build
+          npx --yes pnpm@10.28.2 --filter @xau/web test
+      - name: Domain and integration cases
+        shell: pwsh
+        run: |
+          .venv/Scripts/python.exe -m pytest tests --ignore=tests/performance -q
+      - name: Independent browser workflow
+        shell: pwsh
+        run: |
+          node_modules/.bin/playwright.cmd test

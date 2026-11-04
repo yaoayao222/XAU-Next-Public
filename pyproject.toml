@@ -1,0 +1,23 @@
+[project]
+name = "xau-next-workspace"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["xau-next-api"]
+
+[tool.uv.sources]
+xau-next-api = { workspace = true }
+
+[tool.uv.workspace]
+members = ["apps/api"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "httpx>=0.28,<1", "jsonschema>=4.23,<5", "datamodel-code-generator>=0.35,<1", "ruff>=0.12,<1", "build>=1,<2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["apps/api/src", "apps/mt5_bridge/src"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"

@@ -1,0 +1,838 @@
+{
+  "schema_version": "1.0",
+  "project": "XAU-Next",
+  "created_on": "2026-10-12",
+  "canonical_spec": "REBUILD_SPEC.md",
+  "architecture": "docs/ARCHITECTURE.md",
+  "delivery_guide": "docs/AGENT_DELIVERY.md",
+  "contract_sources": [
+    "contracts/openapi.json",
+    "contracts/analysis-answer.schema.json"
+  ],
+  "ownership_rule": "owned_paths 为唯一写入范围；inputs 及依赖代码默认只读。同一路径的任务需按依赖顺序移交，共享文件由固定角色统一维护。",
+  "shared_owners": [
+    {
+      "role": "integration",
+      "paths": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/**",
+        "fixtures/acceptance-cases.json",
+        "packages/api-client/**",
+        "apps/api/src/xau_next/transport/generated/**",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "pnpm-lock.yaml",
+        "pyproject.toml",
+        "uv.lock",
+        "tsconfig.base.json",
+        ".github/workflows/**",
+        "apps/api/src/xau_next/main.py",
+        "apps/api/src/xau_next/bootstrap.py",
+        "planning/work-items.json",
+        "apps/api/src/xau_next/http/**",
+        "apps/api/src/xau_next/workflows/**",
+        "apps/api/src/xau_next/shared/**",
+        "apps/mt5_bridge/uv.lock",
+        "apps/mt5_bridge/.python-version",
+        "docs/AGENT_DELIVERY.md"
+      ]
+    },
+    {
+      "role": "data",
+      "paths": [
+        "apps/api/src/xau_next/platform/db/**",
+        "apps/api/migrations/**"
+      ]
+    },
+    {
+      "role": "web_shell",
+      "paths": [
+        "apps/web/src/app/**",
+        "apps/web/src/shared/**",
+        "apps/web/src/styles/**",
+        "apps/web/src/api/**"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T00",
+      "title": "建立独立工作区与可重复开发基线",
+      "depends_on": [],
+      "owner_role": "integration",
+      "owned_paths": [
+        ".editorconfig",
+        ".gitignore",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "pnpm-lock.yaml",
+        "pyproject.toml",
+        "uv.lock",
+        "tsconfig.base.json",
+        ".github/workflows/**",
+        "tooling/dev/**",
+        "tooling/checks/**",
+        "apps/api/pyproject.toml",
+        "apps/api/src/xau_next/main.py",
+        "apps/api/src/xau_next/bootstrap.py",
+        "apps/web/package.json",
+        "apps/web/vite.config.ts",
+        "apps/web/tsconfig*.json",
+        "apps/web/index.html",
+        "apps/web/src/main.tsx",
+        "apps/mt5_bridge/pyproject.toml",
+        "apps/mt5_bridge/uv.lock",
+        "apps/mt5_bridge/.python-version",
+        "apps/api/.python-version",
+        "apps/api/src/xau_next/shared/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "docs/AGENT_DELIVERY.md",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-01"
+      ],
+      "done_when": [
+        "从干净目录能按锁文件安装依赖，前后端各自启动且拥有独立构建入口。",
+        "开发命令接受独立 API/Web 端口、DATA_ROOT 与 bridge 配置，冲突能给出具体诊断。",
+        "最小静态检查和 CI 入口可执行；依赖版本在实现时核实，未伪称本设计稿已安装。",
+        "共享文件所有权及集成基线已登记，后续任务能使用确定的提交开始。",
+        "建立独立Git仓库和初始开发基线；最小Money/UTC/ID值对象有明确位置，领域不依赖生成wire DTO。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T01",
+      "title": "落地权威契约、生成 DTO/SDK 与共享案例",
+      "depends_on": [
+        "T00"
+      ],
+      "owner_role": "integration",
+      "owned_paths": [
+        "contracts/**",
+        "fixtures/acceptance-cases.json",
+        "packages/api-client/**",
+        "apps/api/src/xau_next/transport/generated/**",
+        "tooling/contracts/**",
+        "tests/contracts/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "contracts/analysis-answer.schema.json",
+        "fixtures/acceptance-cases.json"
+      ],
+      "acceptance_ids": [
+        "AC-03",
+        "AC-05",
+        "AC-20"
+      ],
+      "done_when": [
+        "OpenAPI 3.1 与 JSON Schema 2020-12 有可执行校验，外部引用能够解析。",
+        "从契约可重复生成 Python wire DTO 和 TypeScript SDK；生成两次无非预期差异。",
+        "FastAPI 导出被定义为派生语义核对源，权威契约不被服务端自动覆盖。",
+        "成功、空数据、处理中、错误与 SSE 样例可供前后端共同使用，所有任务已映射对应验收标识。",
+        "冻结MT5桥请求/响应Schema与六域public输入输出快照；只建立后续任务确实消费的最小接口。",
+        "桥协议、HTTP与答案Schema的共同输入可离线验证；不存在第二套手写相同wire字段。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T02",
+      "title": "实现数据库、迁移、事务与附件存储",
+      "depends_on": [
+        "T01"
+      ],
+      "owner_role": "data",
+      "owned_paths": [
+        "apps/api/src/xau_next/platform/db/**",
+        "apps/api/src/xau_next/platform/files/**",
+        "apps/api/migrations/**",
+        "tests/persistence/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-04",
+        "AC-06",
+        "AC-08",
+        "AC-09",
+        "AC-16",
+        "AC-18",
+        "AC-24"
+      ],
+      "done_when": [
+        "首版领域所需 schema 与迁移顺序可在空数据库执行，复跑不会重建或丢失数据。",
+        "事务覆盖导入、版本更新、任务状态与关系写入；故障时不会留下半条业务事实。",
+        "DATA_ROOT 集中解析，数据库、附件、备份和临时文件落在配置的独立根目录。",
+        "关闭后重新打开可读取同一组关联记录；迁移和恢复用独立测试数据库验证。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T03",
+      "title": "实现行情领域和 Windows MT5 只读 bridge",
+      "depends_on": [
+        "T02"
+      ],
+      "owner_role": "market_bridge",
+      "owned_paths": [
+        "apps/api/src/xau_next/domains/market/**",
+        "apps/mt5_bridge/src/**",
+        "tests/market/**",
+        "tests/mt5_bridge/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-02",
+        "AC-10",
+        "AC-12",
+        "AC-13"
+      ],
+      "done_when": [
+        "通过定义好的子进程协议获取报价、K 线、合约与只读账户事实，协议有超时和可诊断错误。",
+        "bridge 对外只提供授权读取能力，fixture 与真实来源的类型和身份标识明确。",
+        "行情来源、时间、缺口和新鲜度按主规格处理，无法取得的数据返回明确状态。",
+        "fixture 模式完成协议、生命周期和失败恢复测试，真实终端验证留给 T14。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T04",
+      "title": "实现分析包、回答导入、版本与可用时间",
+      "depends_on": [
+        "T02"
+      ],
+      "owner_role": "analysis_backend",
+      "owned_paths": [
+        "apps/api/src/xau_next/domains/analysis/**",
+        "tests/analysis/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "contracts/analysis-answer.schema.json",
+        "fixtures/acceptance-cases.json",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-03",
+        "AC-04",
+        "AC-05",
+        "AC-06",
+        "AC-07",
+        "AC-08",
+        "AC-09",
+        "AC-15"
+      ],
+      "done_when": [
+        "导出分析包和导入有效回答均经过实际 API 与持久化适配器；原回答可关联查询。",
+        "导入校验返回可定位的字段问题，失败导入不产生可用预测版本。",
+        "更新创建新版本并保留前版，重复导入按契约返回既有结果而不重复写入。",
+        "回答实际可用时间与行情时间独立保存，后来的版本不能影响过去方案可用性。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T05",
+      "title": "实现方案生命周期、费用与预算计算",
+      "depends_on": [
+        "T02"
+      ],
+      "owner_role": "plans_backend",
+      "owned_paths": [
+        "apps/api/src/xau_next/domains/plans/**",
+        "tests/plans/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-18"
+      ],
+      "done_when": [
+        "方向、触发、入场、失效、期限和版本有效性按主规格得到可解释状态。",
+        "使用确定性金额计算和明确单位，包含费用、手数约束、止损金额与预算适配。",
+        "费用未知、最小手数不适配和信息不足分别保留具体结果，不补零或强行改变策略价格。",
+        "人工核算例题、时间边界、状态冲突和实验预算案例有针对性验证。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T06",
+      "title": "实现前端壳与公共交互基础",
+      "depends_on": [
+        "T01"
+      ],
+      "owner_role": "web_shell",
+      "owned_paths": [
+        "apps/web/src/app/**",
+        "apps/web/src/shared/**",
+        "apps/web/src/styles/**",
+        "apps/web/src/api/**",
+        "tests/web/shell/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-01",
+        "AC-02",
+        "AC-19"
+      ],
+      "done_when": [
+        "独立 SPA 可启动和构建，工作台、分析更新、历史复盘、设置入口按规格组织。",
+        "所有网络访问经过生成 SDK 的适配层，SSE 订阅和连接状态集中处理。",
+        "加载、空结果、错误、离线和 mock 来源有一致且可理解的呈现。",
+        "公共组件与功能页面的依赖方向清楚，主要键盘操作及桌面显示可用。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T07",
+      "title": "实现分析与更新页面",
+      "depends_on": [
+        "T06"
+      ],
+      "owner_role": "web_analysis",
+      "owned_paths": [
+        "apps/web/src/features/analysis/**",
+        "tests/web/analysis/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "contracts/analysis-answer.schema.json",
+        "fixtures/acceptance-cases.json",
+        "apps/web/src/shared/**",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-03",
+        "AC-04",
+        "AC-05",
+        "AC-06",
+        "AC-07",
+        "AC-08",
+        "AC-09"
+      ],
+      "done_when": [
+        "用户能完成分析包导出、回答导入、校验问题修正和版本变化查看。",
+        "通过契约 mock 展示成功、重复导入、格式错误和后台处理中情况。",
+        "接真实 API 时仅切换数据适配，页面没有依赖 mock 专属字段。",
+        "页面向应用壳提供明确导出与接线路径，交互验收覆盖完整导入更新操作。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T08",
+      "title": "整合第一条可运行流程",
+      "depends_on": [
+        "T03",
+        "T04",
+        "T05",
+        "T07",
+        "T11",
+        "T12",
+        "T18"
+      ],
+      "owner_role": "integration",
+      "owned_paths": [
+        "apps/api/src/xau_next/main.py",
+        "apps/api/src/xau_next/bootstrap.py",
+        "tests/integration/first_flow/**",
+        "apps/api/src/xau_next/http/**",
+        "apps/api/src/xau_next/workflows/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "apps/api/src/xau_next/domains/**",
+        "apps/web/src/**",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-02",
+        "AC-03",
+        "AC-04",
+        "AC-05",
+        "AC-06",
+        "AC-07",
+        "AC-08",
+        "AC-09",
+        "AC-10",
+        "AC-19",
+        "AC-20"
+      ],
+      "done_when": [
+        "真实本地 API、数据库和 SPA 完成行情 fixture→导出→导入→方案显示→更新流程。",
+        "关闭服务和页面后重新启动，原回答、当前版本、历史版本及方案恢复正确。",
+        "当前整合版本通过首条流程测试，mock 与真实持久化的完成层级明确。",
+        "发现的契约或接线问题由对应唯一负责人修复；T08 不自行修改领域或前端壳所有权外文件。",
+        "实现当前操作所需HTTP路由、wire映射、工作台聚合和跨域导入事务；通过独立SPA完成方案展示，接口结果不依赖测试专用入口。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T09",
+      "title": "实现持仓及成交事实关联",
+      "depends_on": [
+        "T02"
+      ],
+      "owner_role": "portfolio_backend",
+      "owned_paths": [
+        "apps/api/src/xau_next/domains/portfolio/**",
+        "tests/portfolio/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "apps/api/src/xau_next/domains/market/**",
+        "apps/api/src/xau_next/domains/plans/**",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-13",
+        "AC-16"
+      ],
+      "done_when": [
+        "当前持仓与历史成交事实通过只读端口进入系统，并按契约保留来源和关联标识。",
+        "实际交易与预测方案明确关联；未关联、人工备注和未知事实按规格展示。",
+        "提供可供实验消费的只读成交事实；完整一次一笔、事件顺序和累计亏损实验回放在 V1.1 T19 独立验收。",
+        "方案模拟结果和真实成交金额分开保存和查询，不把参考价格当实际成交。",
+        "先用T01冻结的领域快照契约实现；跨域真实接线由整合任务验证。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T10",
+      "title": "实现历史复盘与经验关联",
+      "depends_on": [
+        "T02"
+      ],
+      "owner_role": "review_backend",
+      "owned_paths": [
+        "apps/api/src/xau_next/domains/review/**",
+        "tests/review/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "apps/api/src/xau_next/domains/analysis/**",
+        "apps/api/src/xau_next/domains/plans/**",
+        "apps/api/src/xau_next/domains/portfolio/**",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17"
+      ],
+      "done_when": [
+        "按当时可用版本计算方案复盘，实际成交复盘使用已关联事实。",
+        "缺柱、价格侧不足和同柱顺序不明按主规格保留未知与原因。",
+        "复盘能在后台执行、查询进度并恢复可重试任务，重复执行遵循幂等规则。",
+        "下一包可引用具有来源的历史经验，复盘结果不反写原回答或伪造原始证据。",
+        "先用T01冻结的分析/方案/成交快照实现；不等待相邻领域全部完成，真实组合在T16验收。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T11",
+      "title": "实现设置及实验参数持久化",
+      "depends_on": [
+        "T02"
+      ],
+      "owner_role": "settings_backend",
+      "owned_paths": [
+        "apps/api/src/xau_next/domains/settings/**",
+        "tests/settings/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-18"
+      ],
+      "done_when": [
+        "数据源、费用配置、预算与实验参数可通过契约读取和保存。",
+        "配置错误返回字段级原因；用户能区分当前生效值和待保存值。",
+        "参数变化的生效语义符合主规格，历史方案保留其原始计算依据。",
+        "重启后恢复已保存配置，账户身份及本地敏感配置按明确存储边界处理。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T12",
+      "title": "实现工作台、方案与持仓页面",
+      "depends_on": [
+        "T06"
+      ],
+      "owner_role": "web_workspace",
+      "owned_paths": [
+        "apps/web/src/features/workspace/**",
+        "apps/web/src/features/plans/**",
+        "apps/web/src/features/portfolio/**",
+        "tests/web/workspace/**",
+        "tests/web/plans/**",
+        "tests/web/portfolio/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "apps/web/src/shared/**",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-02",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-19"
+      ],
+      "done_when": [
+        "工作台呈现当前结论、方案状态、金额、持仓与下一步操作，核心信息无需查看技术日志。",
+        "用户能理解预算通过、预算不适配、费用未知、过期和失效的区别。",
+        "连接状态、只读事实更新时间和后台任务进度按契约展示。",
+        "先通过契约 mock 完成交互，再与 T05/T09 真实接口核对，完整性在 T16 整合验证。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T13",
+      "title": "实现历史复盘与设置页面",
+      "depends_on": [
+        "T06"
+      ],
+      "owner_role": "web_history_settings",
+      "owned_paths": [
+        "apps/web/src/features/history/**",
+        "apps/web/src/features/review/**",
+        "apps/web/src/features/settings/**",
+        "tests/web/history/**",
+        "tests/web/review/**",
+        "tests/web/settings/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "apps/web/src/shared/**",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-07",
+        "AC-09",
+        "AC-16",
+        "AC-17",
+        "AC-18"
+      ],
+      "done_when": [
+        "历史界面能追溯原回答、版本、方案和复盘，并区分模拟与实际交易结果。",
+        "未知、未进入和缺失证据有明确说明，筛选和详情不改变原始数据。",
+        "设置页面能编辑实验参数并展示验证问题和生效信息。",
+        "契约 mock 与真实接口使用同一页面逻辑，T10/T11 接入后的行为由 T16 核验。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T14",
+      "title": "完成真实 MT5 只读连接验收",
+      "depends_on": [
+        "T03",
+        "T08",
+        "T09"
+      ],
+      "owner_role": "market_bridge",
+      "owned_paths": [
+        "apps/mt5_bridge/src/**",
+        "apps/api/src/xau_next/domains/market/**",
+        "tests/mt5_bridge/**",
+        "tests/market/**",
+        "tests/integration/real_mt5/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json",
+        "apps/api/src/xau_next/domains/portfolio/**",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-02",
+        "AC-13",
+        "AC-21"
+      ],
+      "done_when": [
+        "在当前允许的真实终端读取报价、K 线、合约及相关只读事实，验证来源与身份对应。",
+        "终端断开、数据不新鲜和子进程失败显示具体状态，并在恢复后继续读取。",
+        "API 和 SPA 展示的真实数据能与桥接原始响应核对；证据标明验证时间与代码版本。",
+        "真实环境不可用时该任务保持未完成并记录具体缺口，fixture 通过不替代真实接入验收。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T15",
+      "title": "实现安装、启动、备份与恢复",
+      "depends_on": [
+        "T08"
+      ],
+      "owner_role": "runtime_delivery",
+      "owned_paths": [
+        "tooling/package/**",
+        "tooling/backup/**",
+        "tooling/launch/**",
+        "docs/OPERATIONS.md",
+        "tests/operations/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "docs/AGENT_DELIVERY.md",
+        "apps/api/src/xau_next/bootstrap.py",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-01",
+        "AC-09",
+        "AC-24"
+      ],
+      "done_when": [
+        "从发布候选目录按文档完成安装和一键启动，前后端分离运行且关闭可控。",
+        "启动检查明确报告 Python/终端/端口/数据路径问题，用户无需解释内部堆栈。",
+        "备份覆盖数据库一致性与关联附件，恢复到独立目录后可继续查询完整历史。",
+        "运行说明包含启动、退出、备份、恢复和常见故障处理，命令均在当前候选上验证。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T16",
+      "title": "完成整合验收与性能测量",
+      "depends_on": [
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15"
+      ],
+      "owner_role": "integration",
+      "owned_paths": [
+        "tests/acceptance/**",
+        "tests/performance/**",
+        "docs/VALIDATION.md",
+        "apps/api/src/xau_next/http/**",
+        "apps/api/src/xau_next/workflows/**",
+        "apps/api/src/xau_next/main.py",
+        "apps/api/src/xau_next/bootstrap.py"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "contracts/analysis-answer.schema.json",
+        "fixtures/acceptance-cases.json",
+        "planning/work-items.json",
+        "docs/OPERATIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-01",
+        "AC-02",
+        "AC-03",
+        "AC-04",
+        "AC-05",
+        "AC-06",
+        "AC-07",
+        "AC-08",
+        "AC-09",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19",
+        "AC-20",
+        "AC-21",
+        "AC-22",
+        "AC-24"
+      ],
+      "done_when": [
+        "核验V1的AC-01至AC-22及AC-24，测试ID有映射；AC-23在T19单独验收。",
+        "记录当前整合提交、环境、操作、预期与实际结果；未验证项明确保留。",
+        "真实只读数据、导入更新、金额计算、历史复盘与重启恢复均在整合版本成立。",
+        "按规格测量本地交互、API、MT5 与后台任务；缺陷修复后只重跑受影响验证及必要回归。",
+        "完成所有后续领域的HTTP和跨域接线；V1运行时实现覆盖全部V1 operationId，V1.1接口仅报告未启用。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T17",
+      "title": "整理可使用交付物与状态",
+      "depends_on": [
+        "T16"
+      ],
+      "owner_role": "integration",
+      "owned_paths": [
+        "docs/DELIVERY.md",
+        "planning/work-items.json"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/OPERATIONS.md",
+        "docs/VALIDATION.md",
+        "planning/work-items.json"
+      ],
+      "acceptance_ids": [
+        "AC-01",
+        "AC-21",
+        "AC-24"
+      ],
+      "done_when": [
+        "交付说明列出安装启动方式、完成范围、验证证据和剩余限制，与当前候选一致。",
+        "任务状态仅依据真实完成证据更新，ready_for_integration 与 done 含义严格区分。",
+        "用户能按照说明完成一次日常闭环；尚需用户参与的操作验收与软件测试分别记录。",
+        "明确本次交付是否仅候选可用，替换旧系统入口或正式部署只在对应授权下执行。"
+      ],
+      "release": "V1",
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T18",
+      "title": "实现持久任务、幂等和SSE事件平台",
+      "release": "V1",
+      "depends_on": [
+        "T02"
+      ],
+      "owner_role": "platform",
+      "owned_paths": [
+        "apps/api/src/xau_next/platform/jobs/**",
+        "apps/api/src/xau_next/platform/events/**",
+        "apps/api/src/xau_next/platform/idempotency/**",
+        "tests/jobs/**",
+        "tests/events/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json"
+      ],
+      "acceptance_ids": [
+        "AC-06",
+        "AC-09",
+        "AC-19",
+        "AC-22"
+      ],
+      "done_when": [
+        "任务领取、租约令牌、重试、取消和幂等在临时真实SQLite验证。",
+        "副作用、job结果和通知事件通过同一事务提交；过期执行者不能写结果。",
+        "SSE采用fetch鉴权客户端所需协议，snapshot cursor与重连、resync.required可复现。",
+        "迁移由数据owner统一，路由由integration接线；本任务返回精确接线清单。"
+      ],
+      "status": "not_verified_in_share_snapshot"
+    },
+    {
+      "id": "T19",
+      "title": "实现可选40美元实验回放和结果视图",
+      "release": "V1.1",
+      "depends_on": [
+        "T17"
+      ],
+      "owner_role": "experiment",
+      "owned_paths": [
+        "apps/api/src/xau_next/domains/review/experiments/**",
+        "apps/web/src/features/history/experiments/**",
+        "tests/experiments/**"
+      ],
+      "inputs": [
+        "REBUILD_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "contracts/openapi.json",
+        "fixtures/acceptance-cases.json"
+      ],
+      "acceptance_ids": [
+        "AC-11",
+        "AC-14",
+        "AC-15",
+        "AC-23"
+      ],
+      "done_when": [
+        "使用全局事件队列和冻结输入，按实际候选入场时点竞争持仓。",
+        "单笔与累计净亏损预算同时成立、盈利不补预算、到期退出金额与人工样例一致。",
+        "未知影响账户状态时停止确定路径，完整报告停止后未评估数及全部分母。",
+        "不改日常配置或原复盘；实验HTTP接线由integration完成，不阻塞既有V1日常版。"
+      ],
+      "status": "not_verified_in_share_snapshot"
+    }
+  ],
+  "plan_status": "sanitized_source_snapshot",
+  "planning_note": "分享版只保留开发任务定义；本机部署、账户、调用及验收记录不随源码分发。"
+}

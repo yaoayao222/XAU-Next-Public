@@ -1,0 +1,176 @@
+[
+  {
+    "id": "schema-numeric-price",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "plans",
+          0,
+          "stop_loss"
+        ],
+        "value": 98.8
+      }
+    ],
+    "schema_valid": false,
+    "expected_business_result": "SCHEMA_INVALID",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "schema-missing-request",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "remove",
+        "path": [
+          "request_id"
+        ]
+      }
+    ],
+    "schema_valid": false,
+    "expected_business_result": "SCHEMA_INVALID",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "schema-time-without-zone",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "market_cutoff"
+        ],
+        "value": "2026-10-12T02:00:00"
+      }
+    ],
+    "schema_valid": false,
+    "expected_business_result": "SCHEMA_INVALID",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "schema-extra-field",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "add",
+        "path": [
+          "auto_order"
+        ],
+        "value": true
+      }
+    ],
+    "schema_valid": false,
+    "expected_business_result": "SCHEMA_INVALID",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "valid-unknown-volume",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "plans",
+          0,
+          "volume_lots"
+        ],
+        "value": null
+      }
+    ],
+    "schema_valid": true,
+    "expected_business_result": "ACCEPT_WITH_EVALUATION_GAP",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "business-wrong-request",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "request_id"
+        ],
+        "value": "req-not-this-request"
+      }
+    ],
+    "schema_valid": true,
+    "expected_business_result": "REQUEST_MISMATCH",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "business-wrong-stop-geometry",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "plans",
+          0,
+          "stop_loss"
+        ],
+        "value": "102.00"
+      }
+    ],
+    "schema_valid": true,
+    "expected_business_result": "PRICE_GEOMETRY_INVALID",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "business-invalid-invalidation",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "plans",
+          0,
+          "invalidation"
+        ],
+        "value": {
+          "kind": "immediate"
+        }
+      }
+    ],
+    "schema_valid": true,
+    "expected_business_result": "RULE_CONTEXT_INVALID",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "business-past-horizon",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "horizons",
+          0,
+          "end_at"
+        ],
+        "value": "2026-10-12T01:00:00Z"
+      }
+    ],
+    "schema_valid": true,
+    "expected_business_result": "TIME_WINDOW_INVALID",
+    "business_verification": "not_run_no_application"
+  },
+  {
+    "id": "business-off-grid",
+    "base": "analysis-answer.valid.json",
+    "mutations": [
+      {
+        "op": "replace",
+        "path": [
+          "plans",
+          0,
+          "entry",
+          "price"
+        ],
+        "value": "100.001"
+      }
+    ],
+    "schema_valid": true,
+    "expected_business_result": "PRICE_GRID_INVALID",
+    "business_verification": "not_run_no_application"
+  }
+]

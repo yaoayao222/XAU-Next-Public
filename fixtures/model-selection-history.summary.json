@@ -1,0 +1,9 @@
+{
+  "scope": "frozen historical review through 2026-10-25, not a live call counter",
+  "attempts": 58,
+  "qualified_answers": 34,
+  "failed": 22,
+  "unknown": 2,
+  "winner": null,
+  "note": "Different prompt/search groups remain stratified. Qualified is not prediction correct."
+}

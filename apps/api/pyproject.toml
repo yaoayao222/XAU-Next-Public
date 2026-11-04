@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xau-next-api"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.34,<1",
+    "sqlalchemy>=2.0,<3",
+    "alembic>=1.15,<2",
+    "jsonschema[format-nongpl]>=4.23,<5",
+    "pydantic>=2.10,<3",
+    "tzdata>=2026.5",
+    "httpx>=0.28,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/xau_next"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"migrations" = "xau_next/_migrations"

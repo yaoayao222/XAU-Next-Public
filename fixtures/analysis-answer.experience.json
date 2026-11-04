@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.4.0",
+  "request_id": "req-demo-1",
+  "forecast_id": "fc-demo-1",
+  "base_version_id": null,
+  "market_snapshot_id": "snap-demo-1",
+  "market_cutoff": "2026-10-12T02:00:00Z",
+  "summary": "合成示例：先确认条件，再观察回踩。不是实际市场预测。",
+  "market_regime": "range",
+  "horizons": [
+    {
+      "horizon_minutes": 180,
+      "end_at": "2026-10-12T05:00:00Z",
+      "direction": "uncertain",
+      "expected_range": {
+        "low": "98.00",
+        "high": "104.00"
+      },
+      "phases": [
+        {
+          "start_at": "2026-10-12T02:00:00Z",
+          "end_at": "2026-10-12T05:00:00Z",
+          "direction": "uncertain",
+          "note": "合成区间示例"
+        }
+      ],
+      "turning_points": [],
+      "confidence": null
+    },
+    {
+      "horizon_minutes": 360,
+      "end_at": "2026-10-12T08:00:00Z",
+      "direction": "uncertain",
+      "expected_range": {
+        "low": "98.00",
+        "high": "104.00"
+      },
+      "phases": [
+        {
+          "start_at": "2026-10-12T02:00:00Z",
+          "end_at": "2026-10-12T08:00:00Z",
+          "direction": "uncertain",
+          "note": "合成区间示例"
+        }
+      ],
+      "turning_points": [],
+      "confidence": null
+    },
+    {
+      "horizon_minutes": 720,
+      "end_at": "2026-10-12T14:00:00Z",
+      "direction": "uncertain",
+      "expected_range": {
+        "low": "98.00",
+        "high": "104.00"
+      },
+      "phases": [
+        {
+          "start_at": "2026-10-12T02:00:00Z",
+          "end_at": "2026-10-12T14:00:00Z",
+          "direction": "uncertain",
+          "note": "合成区间示例"
+        }
+      ],
+      "turning_points": [],
+      "confidence": null
+    }
+  ],
+  "plans": [
+    {
+      "plan_key": "primary",
+      "role": "primary",
+      "side": "long",
+      "entry": {
+        "mode": "limit_retest",
+        "price": "100.00",
+        "zone": {
+          "low": "99.90",
+          "high": "100.10"
+        }
+      },
+      "activation": {
+        "kind": "bar_close",
+        "timeframe": "M5",
+        "operator": "gt",
+        "price": "101.00"
+      },
+      "invalidation": {
+        "kind": "quote_compare",
+        "quote_side": "bid",
+        "operator": "lt",
+        "price": "98.80"
+      },
+      "stop_loss": "98.80",
+      "take_profit": "103.00",
+      "volume_lots": "0.01",
+      "valid_from": "2026-10-12T02:00:00Z",
+      "entry_deadline": "2026-10-12T03:00:00Z",
+      "exit_deadline": "2026-10-12T04:00:00Z",
+      "max_holding_minutes": 120,
+      "rationale": "固定合成案例：等待结构触发后回踩，不是实时市场建议。",
+      "trading_style": "intraday",
+      "entry_checks": [],
+      "post_activation_invalidation": null
+    }
+  ],
+  "order_advice": [],
+  "evidence_refs": [
+    "snap-demo-1"
+  ],
+  "analysis_basis": {
+    "main_thesis": "合成案例：日内偏多，等待回踩。",
+    "supporting_evidence": [
+      "已收盘柱的局部高低点抬升。"
+    ],
+    "opposing_evidence": [
+      "尚未有效越过上方阻力。"
+    ],
+    "alternative": "阻力不能突破时继续震荡。",
+    "range_basis": "参考包内波动摘要；不把区间覆盖当作盈利概率。",
+    "change_since_previous": "首次合成分析，无前版。",
+    "limitations": [
+      "此为合成验收案例，不是实时建议。"
+    ],
+    "reassessment_conditions": []
+  },
+  "candidate_assessments": [
+    {
+      "trading_style": "scalp",
+      "outcome": "no_candidate",
+      "plan_key": null,
+      "rationale": "合成案例：没有足够依据定义短线结构。",
+      "missing_conditions": [
+        "缺少短线结构止损和目标空间的依据。"
+      ]
+    },
+    {
+      "trading_style": "intraday",
+      "outcome": "candidate",
+      "plan_key": "primary",
+      "rationale": "合成案例：可以定义条件候选，等待触发后回踩；当前是否可入场由系统检查。",
+      "missing_conditions": []
+    }
+  ],
+  "experience_application": {
+    "digest_id": null,
+    "status": "unavailable",
+    "case_assessments": [],
+    "limitations": [
+      "SYNTHETIC：本例未提供可用历史经验，不声称预测改善。"
+    ]
+  },
+  "prediction_adjustments": []
+}

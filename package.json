@@ -1,0 +1,16 @@
+{
+  "name": "xau-next-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "build": "pnpm --filter @xau/web build",
+    "contracts:generate": ".venv\\Scripts\\python.exe tooling/contracts/generate.py",
+    "contracts:check": ".venv\\Scripts\\python.exe tooling/contracts/generate.py --check",
+    "architecture:check": ".venv\\Scripts\\python.exe tooling/checks/architecture.py",
+    "test:unit": ".venv\\Scripts\\python.exe -m pytest tests --ignore=tests/integration --ignore=tests/acceptance --ignore=tests/performance",
+    "test:integration": ".venv\\Scripts\\python.exe -m pytest tests/integration",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {"openapi-typescript": "7.13.0", "typescript": "5.9.3", "@playwright/test": "1.58.2"}
+}
