@@ -25,9 +25,9 @@ test('SYNTHETIC API settings, hidden key, independent probe, analysis and manual
   await expect(panel.getByText('字符保真测试已通过', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${process.env.XAU_NEXT_E2E_SCREENSHOTS ?? 'test-results'}/model-settings-desktop.png`, fullPage: true });
   await page.goto('/analysis');
-  await expect(page.getByRole('button', { name: '新分析（API）', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '用 API 生成新分析', exact: true })).toBeEnabled();
   const creating = page.waitForRequest(item => item.url() === api + '/v1/analysis/requests' && item.method() === 'POST');
-  await page.getByRole('button', { name: '新分析（API）', exact: true }).click();
+  await page.getByRole('button', { name: '用 API 生成新分析', exact: true }).click();
   expect((await creating).postDataJSON()).not.toHaveProperty('horizon_minutes');
   const call = page.getByRole('region', { name: '模型调用状态' });
   await expect(call.getByText('处理完成', { exact: true })).toBeVisible({ timeout: 15000 });
@@ -69,7 +69,7 @@ test('SYNTHETIC invalid answer shows field errors and preserves failed import', 
   await settings.getByRole('button', { name: '启动合成生成测试' }).click();
   await expect(settings.getByText('字符保真测试已通过', { exact: true })).toBeVisible();
   await page.goto('/analysis');
-  await page.getByRole('button', { name: '新分析（API）', exact: true }).click();
+  await page.getByRole('button', { name: '用 API 生成新分析', exact: true }).click();
   const call = page.getByRole('region', { name: '模型调用状态' });
   await expect(call.getByText('回答字段错误（3 项）')).toBeVisible({ timeout: 15000 });
   await expect(call.getByText('/market_cutoff', { exact: true })).toBeVisible();

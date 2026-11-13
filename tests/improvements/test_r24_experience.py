@@ -29,7 +29,7 @@ def test_new_manual_request_keeps_statistics_selection_projection_and_originals(
         market=f.refresh()
         request=f.post('/v1/analysis/requests',{'kind':'new','forecast_id':None,'base_version_id':None,'market_snapshot_id':market['snapshot_id']})
         context=facts(request['packet_text']);experience=context['experience']
-        assert request['prompt_version']=='manual-analysis/16'
+        assert request['prompt_version']=='manual-analysis/14'
         assert request['horizon_minutes']==[30,60,180,360,720]
         assert experience['schema_version']=='experience/2' and '_case_candidates' not in experience
         assert experience['forecast_statistics']['record_total']==3

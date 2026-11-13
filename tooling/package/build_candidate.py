@@ -20,12 +20,28 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def source_identity(app_root):
+    """A source archive has no Git identity; never borrow a parent repository's."""
+    app_root = Path(app_root).resolve()
+    if not (app_root / ".git").exists():
+        return {"source_kind": "archive", "source_commit": None, "source_dirty": None}
+    repository = Path(run(["git", "rev-parse", "--show-toplevel"], cwd=app_root)).resolve()
+    if repository != app_root:
+        raise LaunchError("Git 仓库根目录与待打包源码目录不一致。")
+    return {
+        "source_kind": "git",
+        "source_commit": run(["git", "rev-parse", "HEAD"], cwd=app_root),
+        "source_dirty": bool(run(["git", "status", "--porcelain"], cwd=app_root)),
+    }
+
+
 def build(destination, *, app_root=ROOT):
     app_root, target = Path(app_root).resolve(), Path(destination).resolve()
     if target == app_root or app_root.is_relative_to(target):
         raise LaunchError("候选目标不能包含源码根目录。")
     if target.exists() and any(target.iterdir()):
         raise LaunchError("候选目标必须为空；不会覆盖已有候选。")
+    identity = source_identity(app_root)
     target.mkdir(parents=True, exist_ok=True)
     uv = find_uv(app_root)
     pnpm = find_pnpm(app_root)
@@ -63,8 +79,6 @@ def build(destination, *, app_root=ROOT):
         if source.is_file():
             (target / "docs").mkdir(exist_ok=True)
             shutil.copy2(source, target / "docs" / filename)
-    revision = run(["git", "rev-parse", "HEAD"], cwd=app_root)
-    dirty = bool(run(["git", "status", "--porcelain"], cwd=app_root))
     application_version = tomllib.loads((app_root / "apps/api/pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     contract_version = json.loads((app_root / "contracts/openapi.json").read_text(encoding="utf-8"))["info"]["version"]
     created_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -75,8 +89,7 @@ def build(destination, *, app_root=ROOT):
         component_files = {path.relative_to(component_root).as_posix(): sha(path)
                            for path in sorted(component_root.rglob("*")) if path.is_file()}
         component_manifest = {"component": component, "application_version": application_version,
-                              "contract_version": contract_version, "source_commit": revision,
-                              "source_dirty": dirty, "created_at": created_at,
+                              "contract_version": contract_version, **identity, "created_at": created_at,
                               "lock_sha256": sha(app_root / lock), "files": component_files}
         (component_root / "release-manifest.json").write_text(
             json.dumps(component_manifest, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -85,7 +98,7 @@ def build(destination, *, app_root=ROOT):
     manifest = {"format": "xau-next-release/1", "build_id": build_id,
                 "application_version": application_version, "contract_version": contract_version,
                 "created_at": created_at,
-                "source_commit": revision, "source_dirty": dirty, "tools": tools,
+                **identity, "tools": tools,
                 "api_wheel": wheel.relative_to(target).as_posix(),
                 "api_requirements": requirements.relative_to(target).as_posix(), "files": files,
                 "scope": "local_candidate_not_published", "locks": {name: sha(app_root / name) for name in ("uv.lock", "pnpm-lock.yaml")}}

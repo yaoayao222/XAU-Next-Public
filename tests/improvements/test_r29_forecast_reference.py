@@ -8,6 +8,7 @@ import pytest
 
 from tests.guidance.test_workflow import Flow
 from tests.model_api.test_workflow import ModelFlow
+from tests.improvements.prompt_cases import selected_prompt
 from xau_next.domains.analysis.forecast_reference import build_forecast_reference, project_forecast_reference
 from xau_next.domains.analysis.package import build_packet, frozen_answer_schema
 from xau_next.domains.analysis.public import outbound_packet
@@ -120,7 +121,9 @@ def test_nested_projection_keeps_only_declared_fields():
 def test_new_packet_changes_only_comparison_facts_and_prompt_identity(tmp_path):
     f=Flow(tmp_path)
     try:
-        f.configure();request=f.request(f.refresh())
+        f.configure()
+        with selected_prompt(f, 'manual-analysis/16'):
+            request=f.request(f.refresh())
         with f.w.db.read() as scope:stored=f.w.db.documents('analysis').get(scope,'request',request['request_id'])
         assert request['prompt_version']=='manual-analysis/16' and request['answer_schema_version']=='1.7.0'
         new=facts(request['packet_text']);sent=facts(outbound_packet(request['packet_text']))
@@ -137,17 +140,14 @@ def test_new_packet_changes_only_comparison_facts_and_prompt_identity(tmp_path):
 def test_mock_transport_records_exact_version_and_never_regenerates_old_packet(tmp_path,prompt,projection):
     f=ModelFlow(tmp_path)
     try:
-        request=f.ready()
-        if prompt.endswith('/15'):
-            with f.w.db.write() as tx:
-                docs=f.w.db.documents('analysis');old=docs.get(tx,'request',request['request_id'])
-                packet_request=deepcopy(facts(old['packet_text'])['request']);packet_request['prompt_version']=prompt
-                old['prompt_version']=prompt;old['packet_text']=build_packet(packet_request,old['context'],frozen_answer_schema(old))
-                docs.update(tx,'request',old['request_id'],old,old['revision'])
-            request={**request,'prompt_version':prompt,'packet_text':old['packet_text']}
+        with selected_prompt(f, prompt):
+            request=f.ready()
+        original=deepcopy(request)
+        assert request['prompt_version']==prompt
         before=len(f.sent);started=f.start(request)
         assert f.w.model_api.process_once(f.w)
         record=f.record(started);assert record['state']=='succeeded',record
+        assert f.get('/v1/analysis/requests/'+request['request_id'])['packet_text']==original['packet_text']
         packet=facts(json.loads(f.sent[-1].content)['input'])
         assert ('forecast_comparison_context' in packet)==prompt.endswith('/16')
         with f.w.db.read() as tx:saved=f.w.db.documents('analysis').get(tx,'model_call',record['call_id'])

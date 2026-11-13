@@ -35,6 +35,8 @@ npx --yes pnpm@10.28.2 build
 
 推荐先构建安装候选，再在新的空数据目录安装。构建需要 Python、Node.js、pnpm 和 uv；安装后的日常运行不需要 Node.js。
 
+Git 克隆目录和 GitHub Download ZIP 解压目录均可构建。ZIP 不带 Git 历史，构建清单会如实保留提交身份未知，并用文件哈希记录产物完整性。
+
 ```powershell
 .\.venv\Scripts\python.exe tooling/package/build_candidate.py --destination ..\XAU-Next-Package
 ```

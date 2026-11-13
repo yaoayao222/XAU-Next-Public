@@ -16,16 +16,22 @@ PY_OUT = ROOT / "apps/api/src/xau_next/transport/generated/models.py"
 TS_OUT = ROOT / "packages/api-client/src/schema.ts"
 
 
+def contract_digest(root=ROOT):
+    """Hash UTF-8 sources with LF newlines, independently of Git checkout policy."""
+    root = Path(root)
+    return hashlib.sha256(
+        b"".join(
+            (root / name).read_text(encoding="utf-8").encode("utf-8")
+            for name in ("contracts/openapi.json", "contracts/analysis-answer.schema.json")
+        )
+    ).hexdigest()
+
+
 def generate():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    digest = hashlib.sha256(
-        b"".join(
-            (ROOT / p).read_bytes()
-            for p in ["contracts/openapi.json", "contracts/analysis-answer.schema.json"]
-        )
-    ).hexdigest()
+    digest = contract_digest()
     with tempfile.TemporaryDirectory(prefix="xau-contract-") as directory:
         work = Path(directory)
         # Bundle external answer refs without duplicating authoritative definitions.

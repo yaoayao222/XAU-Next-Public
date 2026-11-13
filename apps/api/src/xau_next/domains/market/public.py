@@ -25,6 +25,19 @@ def _dict(value):
     return value.to_dict() if isinstance(value, Snapshot) else value
 
 
+def decode_market_attachment(content, *, media_type, read_many, expected=None):
+    """Decode verified attachment bytes without opening a database or a bridge."""
+    chunked = media_type == archive.MEDIA
+    if expected == archive.FORMAT and not chunked:
+        raise ValueError("行情清单编码不一致")
+    if expected in {"market", "bridge-response"} and chunked:
+        raise ValueError("行情附件编码不一致")
+    if chunked:
+        return archive.decode(content, read_many)
+    # Legacy history can exceed the ordinary-capture codec's size bound.
+    return json.loads(gzip.decompress(content))
+
+
 @dataclass(frozen=True)
 class PreparedCapture:
     market: Snapshot
@@ -256,17 +269,12 @@ class MarketService:
             ref = self._files.get(scope, attachment_id)
             if ref is None:
                 raise KeyError("附件未登记")
-            chunked = ref.media_type == archive.MEDIA
-            if expected == archive.FORMAT and not chunked:
-                raise ValueError("行情清单编码不一致")
-            if expected in {"market", "bridge-response"} and chunked:
-                raise ValueError("行情附件编码不一致")
-            content = self._files.read(scope, attachment_id)
-            if chunked:
-                return archive.decode(content, lambda ids: self._files.read_many(scope, ids))
-            # Preserve the existing history reader's size semantics. The new
-            # codec's ordinary-capture bound must not restrict legacy evidence.
-            return json.loads(gzip.decompress(content))
+            return decode_market_attachment(
+                self._files.read(scope, attachment_id),
+                media_type=ref.media_type,
+                read_many=lambda ids: self._files.read_many(scope, ids),
+                expected=expected,
+            )
         except (ValueError, KeyError, TypeError, OSError, EOFError, AttributeError, IndexError, zlib.error) as exc:
             raise DomainError("SNAPSHOT_EVIDENCE_MISMATCH", "行情证据缺失或校验失败，不能使用。", 500) from exc
 

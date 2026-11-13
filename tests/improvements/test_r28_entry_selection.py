@@ -6,6 +6,7 @@ import pytest
 
 from tests.guidance.test_workflow import Flow
 from tests.model_api.test_workflow import ModelFlow
+from tests.improvements.prompt_cases import selected_prompt
 from tests.improvements.test_r27_decision_context import sample
 from xau_next.domains.analysis.entry_selection import build_entry_selection_context, project_entry_selection_context
 from xau_next.domains.analysis.package import build_packet, frozen_answer_schema
@@ -95,8 +96,8 @@ def test_new_input_fact_diff_is_only_entry_context_and_prompt_identity(tmp_path)
         old = facts(build_packet(old_request, stored['context'], frozen_answer_schema(stored)))
         clean = deepcopy(new); clean.pop('entry_selection_context'); clean['request']['prompt_version'] = 'manual-analysis/14'
         assert clean == old
-        assert '入场比较' in request['packet_text']
-        assert '回踩不是默认答案' in request['packet_text']
+        assert '入场比较' in r28_packet
+        assert '回踩不是默认答案' in r28_packet
     finally:
         f.close()
 
@@ -129,17 +130,25 @@ def test_supported_choices_and_no_candidate_import_without_mode_rewriting(tmp_pa
         f.close()
 
 
-def test_latest_projection_reaches_mock_transport_once_and_keeps_original_gates(tmp_path):
+@pytest.mark.parametrize('prompt,projection', [
+    ('manual-analysis/15', 'api-projection/8'),
+    ('manual-analysis/16', 'api-projection/9'),
+])
+def test_latest_projection_reaches_mock_transport_once_and_keeps_original_gates(tmp_path, prompt, projection):
     f = ModelFlow(tmp_path)
     try:
-        request = f.ready(); before = len(f.sent); started = f.start(request)
+        with selected_prompt(f, prompt):
+            request = f.ready()
+        original = deepcopy(request)
+        before = len(f.sent); started = f.start(request)
         assert f.w.model_api.process_once(f.w)
         record = f.record(started); assert record['state'] == 'succeeded',record
+        assert f.get('/v1/analysis/requests/' + request['request_id'])['packet_text'] == original['packet_text']
         sent = facts(json.loads(f.sent[-1].content)['input'])
         assert sent['entry_selection_context'] == facts(request['packet_text'])['entry_selection_context']
         with f.w.db.read() as scope:
             stored = f.w.db.documents('analysis').get(scope,'model_call',record['call_id'])
-        assert stored['configuration']['outbound_transform_version'] == 'api-projection/9'
+        assert stored['configuration']['outbound_transform_version'] == projection
         assert len(f.sent) == before+1 and not f.w.model_api.process_once(f.w)
         assert len(f.sent) == before+1
     finally:

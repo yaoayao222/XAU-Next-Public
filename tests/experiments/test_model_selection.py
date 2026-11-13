@@ -1,7 +1,10 @@
 """SYNTHETIC only: real SQLite claims and MockTransport, no provider or terminal I/O."""
 
 import copy
+import gzip
+import hashlib
 import json
+import sqlite3
 import multiprocessing
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -592,20 +595,87 @@ def test_prepare_reads_only_saved_cpa_without_activation_or_secret_access(case, 
     assert not list(root.glob("*-sent.json"))
 
 
-def test_capture_saved_source_constructs_only_isolated_request(case, tmp_path):
+def saved_source_fingerprint(data_root):
+    connection = sqlite3.connect((data_root / "db/xau-next.sqlite3").as_uri() + "?mode=ro", uri=True)
+    try:
+        connection.execute("PRAGMA query_only=ON")
+        rows = "\n".join(connection.iterdump())
+    finally:
+        connection.close()
+    attachments = {
+        path.relative_to(data_root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in (data_root / "attachments").rglob("*") if path.is_file()
+    }
+    return hashlib.sha256(rows.encode()).hexdigest(), attachments
+
+
+@pytest.mark.parametrize("storage_format", ["legacy", "chunked"])
+def test_capture_saved_source_constructs_only_isolated_request(case, tmp_path, storage_format):
     from tooling.experiments.model_selection import capture_saved_snapshot
 
     flow, _oldroot, plan = case[:3]
+    flow.w.market._storage_format = storage_format
+    flow.clock.value = (parse_utc(flow.clock()) + timedelta(seconds=1)).isoformat().replace("+00:00", "Z")
+    market = flow.refresh()
+    expected = flow.w.market.read_evidence(market["snapshot_id"]).to_dict()
     root = tmp_path / "capture-experiment"
     seal_plan(root, plan)
-    with flow.w.db.read() as tx:
-        before = len(flow.w.db.documents("analysis").list(tx, "request", limit=100))
+    before = saved_source_fingerprint(flow.w.db.data_root)
     schema = Path(__file__).resolve().parents[2] / "contracts/analysis-answer.schema.json"
     result = capture_saved_snapshot(root, "sample-0001", schema, clock=flow.clock)
     assert result["state"] == "FROZEN_FROM_SAVED_SOURCE"
-    assert read(root / "sample-0001/request.json")["prompt_version"] == "manual-analysis/14"
-    with flow.w.db.read() as tx:
-        assert len(flow.w.db.documents("analysis").list(tx, "request", limit=100)) == before
+    frozen = read(root / "sample-0001/request.json")
+    assert frozen["prompt_version"] == "manual-analysis/14"
+    assert frozen["context"]["market"]["series"] == expected["result"]["market"]["series"]
+    assert frozen["context"]["portfolio"]["orders"] == expected["result"]["portfolio"]["orders"]
+    assert saved_source_fingerprint(flow.w.db.data_root) == before
+
+
+@pytest.mark.parametrize("fault", ["missing", "corrupt", "unregistered", "path_escape", "binding"])
+def test_capture_saved_source_rejects_invalid_chunks_and_bindings_without_writes(case, tmp_path, fault):
+    from tooling.experiments.model_selection import capture_saved_snapshot
+
+    flow, _oldroot, plan = case[:3]
+    data_root = flow.w.db.data_root
+    with flow.w.db.read() as scope:
+        snapshot = flow.w.market.latest(scope=scope).to_dict()
+        evidence = flow.w.db.documents("market").get(scope, "evidence", snapshot["snapshot_id"])
+        files = AttachmentStore(flow.w.db)
+        manifest = json.loads(gzip.decompress(files.read(scope, evidence["attachment_id"])))
+        part_id = next(ref["id"] for array in manifest["arrays"] for ref in array["chunks"])
+        part = files.get(scope, part_id)
+    path = (data_root / part.relative_path).resolve()
+    assert path.is_relative_to((data_root / "attachments").resolve())
+    if fault == "missing":
+        path.unlink()
+    elif fault == "corrupt":
+        content = path.read_bytes()
+        path.write_bytes(bytes([content[0] ^ 1]) + content[1:])
+    elif fault in {"unregistered", "path_escape"}:
+        connection = sqlite3.connect(flow.w.db.path)
+        try:
+            if fault == "unregistered":
+                connection.execute("DELETE FROM attachments WHERE id=?", (part_id,))
+            else:
+                connection.execute("UPDATE attachments SET relative_path=? WHERE id=?", ("../outside", part_id))
+            connection.commit()
+        finally:
+            connection.close()
+    else:
+        with flow.w.db.write() as scope:
+            docs = flow.w.db.documents("market")
+            stored = docs.get(scope, "snapshot", snapshot["snapshot_id"])
+            stored["header"]["symbol"] = "SYNTHETIC-MISMATCH"
+            docs.update(scope, "snapshot", snapshot["snapshot_id"], stored, stored["revision"])
+    root = tmp_path / "invalid-capture"
+    seal_plan(root, plan)
+    before = saved_source_fingerprint(data_root)
+    schema = Path(__file__).resolve().parents[2] / "contracts/analysis-answer.schema.json"
+    with pytest.raises((ValueError, OSError)):
+        capture_saved_snapshot(root, "sample-0001", schema, clock=flow.clock)
+    assert not (root / "input-sample-0001").exists()
+    assert not (root / "sample-0001").exists()
+    assert saved_source_fingerprint(data_root) == before
 
 
 def test_later_source_never_repairs_original_missing_endpoint(case):

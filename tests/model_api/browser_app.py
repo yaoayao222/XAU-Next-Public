@@ -85,7 +85,7 @@ def receive(request):
             if parse_utc(stamp(minutes)) > parse_utc(req["market_cutoff"])
         ]
         answer["plans"] = []
-        if req["answer_schema_version"] == "1.6.0":
+        if req["answer_schema_version"] in {"1.6.0", "1.7.0"}:
             for horizon in answer["horizons"]:
                 horizon["forecast_basis"] = {"direction_basis":"SYNTHETIC 端点变化依据", "range_basis":"SYNTHETIC 区间上下界依据",
                     "supporting_evidence":["SYNTHETIC 冻结当前结构"], "opposing_evidence":["SYNTHETIC 反向路径"],

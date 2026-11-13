@@ -29,7 +29,7 @@ def test_new_prompt_reaches_manual_packet_and_real_outbound_projection_without_l
         original = deepcopy(request)
         manual = request['packet_text']
         outgoing = outbound_packet(manual)
-        assert request['prompt_version'] == 'manual-analysis/16'
+        assert request['prompt_version'] == 'manual-analysis/14'
         for packet in (manual, outgoing):
             assert '多头price<entry.zone.low；空头price>entry.zone.high' in packet
             assert '等于边界也不接受；闭柱条件同样适用' in packet
@@ -107,7 +107,7 @@ def test_reported_gold_example_stays_rejected_and_raw_answer_is_preserved_withou
         assert f.w.model_api.calls.read(record['answer']).decode('utf-8') == f.answer_text
         with f.w.db.read() as scope:
             stored = f.w.db.documents('analysis').get(scope, 'model_call', record['call_id'])
-            assert stored['configuration']['outbound_transform_version'] == 'api-projection/9'
+            assert stored['configuration']['outbound_transform_version'] == 'api-projection/7'
         sent = len(f.sent)
         assert not f.w.model_api.process_once(f.w)
         assert len(f.sent) == sent  # No automatic retry after business validation fails.

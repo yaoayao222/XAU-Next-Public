@@ -21,6 +21,7 @@ test('SYNTHETIC review progress survives reload without submitting work', async 
   await page.goto('/history?api=http%3A%2F%2F127.0.0.1%3A18765#token=e2e-isolated-session');
   await expect(page.getByText(/补算 4\/10/)).toBeVisible();
   await expect(page.getByRole('button', { name: '正在补算…' })).toBeDisabled();
+  await page.getByText('什么时候需要补算？', { exact: true }).click();
   await expect(page.getByText(/资料不足项保留未知并等待新证据，不再定时循环补算/)).toBeVisible();
   await page.reload();
   await expect(page.getByText(/补算 4\/10/)).toBeVisible();

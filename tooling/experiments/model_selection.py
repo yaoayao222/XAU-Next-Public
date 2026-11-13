@@ -55,6 +55,27 @@ def decoded(db, payload):
     return json.loads(payload)
 
 
+def read_saved_attachment(db, data_root, attachment_id, *, expected_sha256=None):
+    """Read one registered file through the caller's read-only SQLite connection."""
+    row = db.execute(
+        "SELECT sha256,relative_path,size,media_type FROM attachments WHERE id=?", (attachment_id,)
+    ).fetchone()
+    if row is None:
+        raise ValueError("source attachment missing")
+    data_root = Path(data_root).resolve()
+    path = (data_root / row[1]).resolve()
+    if not path.is_relative_to((data_root / "attachments").resolve()):
+        raise ValueError("attachment path")
+    content = path.read_bytes()
+    if (
+        len(content) != row[2]
+        or digest(content) != row[0]
+        or expected_sha256 is not None and row[0] != expected_sha256
+    ):
+        raise ValueError("source integrity")
+    return content, row[3]
+
+
 def read_cpa_profile(data_root, profile_id):
     """Exact read-only document, including a reference, never the referenced credential."""
     path = Path(data_root).resolve() / "db/xau-next.sqlite3"
@@ -80,6 +101,7 @@ def read_cpa_profile(data_root, profile_id):
 def capture_saved_snapshot(root, sample_id, schema_path, *, clock=utc_now):
     """Reads already-saved exact source once. No MT5 connection or formal request creation."""
     from xau_next.domains.analysis.public import AnalysisService, build_packet, frozen_answer_schema, bind_shared_research_refs
+    from xau_next.domains.market.public import decode_market_attachment
     from xau_next.platform.db.public import Database
     from xau_next.platform.files.public import AttachmentStore
     from xau_next.shared.entry_timing import timing_reference
@@ -111,16 +133,17 @@ def capture_saved_snapshot(root, sample_id, schema_path, *, clock=utc_now):
             "SELECT payload FROM documents WHERE owner='market' AND kind='evidence' AND id=?", (identity,)
         ).fetchone()
         evidence = decoded(db, ev[0])
-        attachment = db.execute(
-            "SELECT sha256,relative_path,size FROM attachments WHERE id=?", (evidence["attachment_id"],)
-        ).fetchone()
-        path = (data / attachment[1]).resolve()
-        if not path.is_relative_to((data / "attachments").resolve()):
-            raise ValueError("attachment path")
-        raw = path.read_bytes()
-        if len(raw) != attachment[2] or digest(raw) != attachment[0] or attachment[0] != evidence["sha256"]:
-            raise ValueError("source integrity")
-        payload = json.loads(gzip.decompress(raw))
+        raw, media_type = read_saved_attachment(
+            db, data, evidence["attachment_id"], expected_sha256=evidence["sha256"]
+        )
+        payload = decode_market_attachment(
+            raw,
+            media_type=media_type,
+            expected=evidence.get("storage_format", "bridge-response"),
+            read_many=lambda ids: {
+                part_id: read_saved_attachment(db, data, part_id)[0] for part_id in dict.fromkeys(ids)
+            },
+        )
         if payload.get("error") is not None:
             raise ValueError("source error")
         market, portfolio = payload["result"]["market"], payload["result"]["portfolio"]
@@ -237,7 +260,7 @@ def capture_saved_snapshot(root, sample_id, schema_path, *, clock=utc_now):
     save(
         root / sample_id / "source-provenance.json",
         {
-            "source_attachment_sha256": attachment[0],
+            "source_attachment_sha256": evidence["sha256"],
             "market_snapshot_id": identity,
             "settings_revision": sr[1],
             "market_cutoff": cutoff,

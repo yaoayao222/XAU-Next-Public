@@ -1,5 +1,6 @@
 """Real, hidden Tk widgets with synthetic text and an in-memory save callback only."""
 
+import os
 import subprocess
 import sys
 import tkinter as tk
@@ -83,9 +84,14 @@ def save_error():
 @pytest.mark.parametrize("scenario", ["masked_entry", "empty_cancel", "save_error"])
 def test_credential_window_in_separate_tcl_process(scenario):
     # Each GUI invocation is a fresh application, matching the real launcher.
+    root = Path(__file__).resolve().parents[2]
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = os.pathsep.join(
+        value for value in (str(root), environment.get("PYTHONPATH")) if value
+    )
     result = subprocess.run(
         [sys.executable, "-B", str(Path(__file__).resolve()), scenario],
-        check=False, capture_output=True, text=True, timeout=20,
+        cwd=root, env=environment, check=False, capture_output=True, text=True, timeout=20,
     )
     assert result.returncode == 0, result.stderr
     assert "SYNTHETIC" not in result.stdout + result.stderr

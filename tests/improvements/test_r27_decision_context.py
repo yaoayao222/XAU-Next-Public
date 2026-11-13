@@ -143,7 +143,7 @@ def test_new_manual_and_api_packets_share_the_exact_summary_and_keep_output_sche
     try:
         f.configure(); request = f.request(f.refresh()); original = deepcopy(request)
         manual = facts(request['packet_text']); sent = facts(outbound_packet(request['packet_text']))
-        assert request['prompt_version'] == 'manual-analysis/16' and request['answer_schema_version'] == '1.7.0'
+        assert request['prompt_version'] == 'manual-analysis/14' and request['answer_schema_version'] == '1.7.0'
         assert manual['decision_context'] == sent['decision_context']
         assert '不能仅以180分钟偏空背书' in request['packet_text']
         assert '不因上涨就永久做多' in request['packet_text']
@@ -166,7 +166,7 @@ def test_mock_provider_receives_new_projection_once_without_real_calls(tmp_path)
         assert record['state'] == 'succeeded', record
         with f.w.db.read() as scope:
             stored = f.w.db.documents('analysis').get(scope, 'model_call', record['call_id'])
-        assert stored['configuration']['outbound_transform_version'] == 'api-projection/9'
+        assert stored['configuration']['outbound_transform_version'] == 'api-projection/7'
         assert facts(json.loads(f.sent[-1].content)['input'])['decision_context'] == facts(request['packet_text'])['decision_context']
         assert not f.w.model_api.process_once(f.w)
         assert len(f.sent) == before + 1
